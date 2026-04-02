@@ -10,16 +10,17 @@ import sqlite3
 from contextlib import closing
 from ejercicio_04 import buscar_persona
 
+
 def listar_pesos(id_persona):
-    """Implementar la funcion listar_pesos, que devuelva el historial de pesos 
+    """Implementar la funcion listar_pesos, que devuelva el historial de pesos
     para una persona dada.
 
     Debe validar:
-    - Que el ID de la persona ingresada existe (reutilizando las funciones ya 
+    - Que el ID de la persona ingresada existe (reutilizando las funciones ya
      mplementadas).
 
     Debe devolver:
-    - Lista de (fecha, peso), donde fecha esta representado por el siguiente 
+    - Lista de (fecha, peso), donde fecha esta representado por el siguiente
     formato: AAAA-MM-DD.
 
     Ejemplo:
@@ -35,7 +36,7 @@ def listar_pesos(id_persona):
     """
     if not buscar_persona(id_persona):
         return False
-    
+
     conexion = sqlite3.connect('practico.db')
     conexion.row_factory = sqlite3.Row
 
@@ -45,11 +46,11 @@ def listar_pesos(id_persona):
             (id_persona,)
         )
         resultados = cursor.fetchall()
-        
+
         historial = []
         for fila in resultados:
-            fecha_corta = fila['Fecha'][:10] 
-            historial.append((fecha_corta, fila['Peso']))   
+            fecha_corta = fila['Fecha'][:10]
+            historial.append((fecha_corta, fila['Peso']))
         return historial
 
 

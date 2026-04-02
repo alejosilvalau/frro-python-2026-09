@@ -6,8 +6,9 @@ from ejercicio_01 import reset_tabla
 import sqlite3
 from contextlib import closing
 
+
 def agregar_persona(nombre, nacimiento, dni, altura):
-    """Implementar la funcion agregar_persona, que inserte un registro en la 
+    """Implementar la funcion agregar_persona, que inserte un registro en la
     tabla Persona y devuelva los datos ingresados el id del nuevo registro."""
     conexion = sqlite3.connect('practico.db')
 
@@ -17,6 +18,7 @@ def agregar_persona(nombre, nacimiento, dni, altura):
             (nombre, nacimiento, dni, altura)
         )
         return cursor.lastrowid or -1
+
 
 # NO MODIFICAR - INICIO
 @reset_tabla

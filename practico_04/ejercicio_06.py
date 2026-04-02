@@ -5,6 +5,7 @@ from ejercicio_01 import borrar_tabla, crear_tabla
 import sqlite3
 from contextlib import suppress, closing
 
+
 def crear_tabla_peso():
     """Implementar la funcion crear_tabla_peso, que cree una tabla PersonaPeso con:
         - IdPersona: Int() (Clave Foranea Persona)
@@ -22,8 +23,9 @@ def crear_tabla_peso():
             )
         """)
 
+
 def borrar_tabla_peso():
-    """Implementar la funcion borrar_tabla, que borra la tabla creada 
+    """Implementar la funcion borrar_tabla, que borra la tabla creada
     anteriormente."""
     conexion = sqlite3.connect('practico.db')
     with suppress(sqlite3.OperationalError), closing(conexion), conexion:

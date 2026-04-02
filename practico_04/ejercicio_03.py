@@ -8,9 +8,10 @@ from ejercicio_02 import agregar_persona
 import sqlite3
 from contextlib import closing
 
+
 def borrar_persona(id_persona):
-    """Implementar la funcion borrar_persona, que elimina un registro en la 
-    tabla Persona. Devuelve un booleano en base a si encontro el registro y lo 
+    """Implementar la funcion borrar_persona, que elimina un registro en la
+    tabla Persona. Devuelve un booleano en base a si encontro el registro y lo
     borro o no."""
     conexion = sqlite3.connect('practico.db')
 
@@ -20,6 +21,7 @@ def borrar_persona(id_persona):
             (id_persona,)
         )
         return cursor.rowcount > 0
+
 
 # NO MODIFICAR - INICIO
 @reset_tabla

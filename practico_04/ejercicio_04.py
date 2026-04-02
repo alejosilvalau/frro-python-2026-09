@@ -8,10 +8,11 @@ from ejercicio_02 import agregar_persona
 import sqlite3
 from contextlib import closing
 
+
 def buscar_persona(id_persona):
-    """Implementar la funcion buscar_persona, que devuelve el registro de una 
-    persona basado en su id. El return es una tupla que contiene sus campos: 
-    id, nombre, nacimiento, dni y altura. Si no encuentra ningun registro, 
+    """Implementar la funcion buscar_persona, que devuelve el registro de una
+    persona basado en su id. El return es una tupla que contiene sus campos:
+    id, nombre, nacimiento, dni y altura. Si no encuentra ningun registro,
     devuelve False."""
     conexion = sqlite3.connect('practico.db')
     conexion.row_factory = sqlite3.Row
@@ -21,14 +22,14 @@ def buscar_persona(id_persona):
             (id_persona,)
         )
         resultado = cursor.fetchone()
-        if resultado:  
+        if resultado:
             fecha_texto = resultado['FechaNacimiento']
             fecha_obj = datetime.datetime.strptime(fecha_texto, "%Y-%m-%d %H:%M:%S")
             return (
-                resultado['IdPersona'], 
-                resultado['Nombre'], 
+                resultado['IdPersona'],
+                resultado['Nombre'],
                 fecha_obj,
-                resultado['DNI'], 
+                resultado['DNI'],
                 resultado['Altura']
             )
         else:

@@ -9,6 +9,7 @@ from ejercicio_04 import buscar_persona
 import sqlite3
 from contextlib import closing
 
+
 def actualizar_persona(id_persona, nombre, nacimiento, dni, altura):
     """Implementar la funcion actualizar_persona, que actualiza un registro de
     una persona basado en su id. Devuelve un booleano en base a si encontro el
@@ -20,9 +21,10 @@ def actualizar_persona(id_persona, nombre, nacimiento, dni, altura):
             UPDATE Persona SET Nombre = ?, FechaNacimiento = ?, DNI = ?, Altura = ?
             WHERE IdPersona = ?
             """,
-            (nombre, nacimiento, dni, altura, id_persona) 
+            (nombre, nacimiento, dni, altura, id_persona)
         )
         return cursor.rowcount > 0
+
 
 # NO MODIFICAR - INICIO
 @reset_tabla
