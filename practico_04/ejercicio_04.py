@@ -14,7 +14,7 @@ def buscar_persona(id_persona):
     id, nombre, nacimiento, dni y altura. Si no encuentra ningun registro, 
     devuelve False."""
     conexion = sqlite3.connect('practico.db')
-    
+    conexion.row_factory = sqlite3.Row
     with closing(conexion), conexion:
         cursor = conexion.execute(
             "SELECT * FROM Persona WHERE IdPersona = ?",
