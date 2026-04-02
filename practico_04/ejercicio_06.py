@@ -1,6 +1,6 @@
 """Base de Datos SQL - Creación de tablas auxiliares"""
 
-from practico_04.ejercicio_01 import borrar_tabla, crear_tabla
+from ejercicio_01 import borrar_tabla, crear_tabla
 
 import sqlite3
 from contextlib import suppress, closing
