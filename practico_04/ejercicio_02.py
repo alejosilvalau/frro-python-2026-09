@@ -3,12 +3,20 @@
 import datetime
 from practico_04.ejercicio_01 import reset_tabla
 
+import sqlite3
+from contextlib import closing
 
 def agregar_persona(nombre, nacimiento, dni, altura):
     """Implementar la funcion agregar_persona, que inserte un registro en la 
     tabla Persona y devuelva los datos ingresados el id del nuevo registro."""
-    pass # Completar
+    conexion = sqlite3.connect('practico.db')
 
+    with closing(conexion), conexion:
+        cursor = conexion.execute(
+            "INSERT INTO Persona (Nombre, FechaNacimiento, DNI, Altura) VALUES (?, ?, ?, ?)",
+            (nombre, nacimiento, dni, altura)
+        )
+        return cursor.lastrowid or -1
 
 # NO MODIFICAR - INICIO
 @reset_tabla
