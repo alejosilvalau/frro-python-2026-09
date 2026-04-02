@@ -48,9 +48,10 @@ def pruebas():
     id_juan = agregar_persona('juan perez', datetime.datetime(1988, 5, 15), 32165498, 180)
     assert agregar_peso(id_juan, datetime.datetime(2018, 5, 26), 80) > 0
     # Test Id incorrecto
-    assert agregar_peso(200, datetime.datetime(1988, 5, 15), 80) == False
+    assert agregar_peso(200, datetime.datetime(1988, 5, 15), 80) is False
     # Test Registro previo al 2018-05-26
-    assert agregar_peso(id_juan, datetime.datetime(2018, 5, 16), 80) == False
+    assert agregar_peso(id_juan, datetime.datetime(2018, 5, 16), 80) is False
+
 
 if __name__ == '__main__':
     pruebas()

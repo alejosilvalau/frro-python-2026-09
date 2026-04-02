@@ -43,6 +43,7 @@ def pruebas():
     assert juan == (1, 'juan perez', datetime.datetime(1988, 5, 15), 32165498, 180)
     assert buscar_persona(12345) is False
 
+
 if __name__ == '__main__':
     pruebas()
 # NO MODIFICAR - FIN
