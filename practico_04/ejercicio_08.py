@@ -6,6 +6,9 @@ from practico_04.ejercicio_02 import agregar_persona
 from practico_04.ejercicio_06 import reset_tabla
 from practico_04.ejercicio_07 import agregar_peso
 
+import sqlite3
+from contextlib import closing
+from ejercicio_04 import buscar_persona
 
 def listar_pesos(id_persona):
     """Implementar la funcion listar_pesos, que devuelva el historial de pesos 
@@ -30,7 +33,24 @@ def listar_pesos(id_persona):
 
     - False en caso de no cumplir con alguna validacion.
     """
-    return []
+    if not buscar_persona(id_persona):
+        return False
+    
+    conexion = sqlite3.connect('practico.db')
+    conexion.row_factory = sqlite3.Row
+
+    with closing(conexion), conexion:
+        cursor = conexion.execute(
+            "SELECT Fecha, Peso FROM PersonaPeso WHERE IdPersona = ? ORDER BY Fecha ASC",
+            (id_persona,)
+        )
+        resultados = cursor.fetchall()
+        
+        historial = []
+        for fila in resultados:
+            fecha_corta = fila['Fecha'][:10] 
+            historial.append((fecha_corta, fila['Peso']))   
+        return historial
 
 
 # NO MODIFICAR - INICIO
