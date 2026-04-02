@@ -6,12 +6,23 @@ from practico_04.ejercicio_01 import reset_tabla
 from practico_04.ejercicio_02 import agregar_persona
 from practico_04.ejercicio_04 import buscar_persona
 
+import sqlite3
+from contextlib import closing
 
 def actualizar_persona(id_persona, nombre, nacimiento, dni, altura):
     """Implementar la funcion actualizar_persona, que actualiza un registro de
     una persona basado en su id. Devuelve un booleano en base a si encontro el
     registro y lo actualizo o no."""
-    pass # Completar
+    conexion = sqlite3.connect('practico.db')
+    with closing(conexion), conexion:
+        cursor = conexion.execute(
+            """
+            UPDATE Persona SET Nombre = ?, FechaNacimiento = ?, DNI = ?, Altura = ?
+            WHERE IdPersona = ?
+            """,
+            (nombre, nacimiento, dni, altura, id_persona) 
+        )
+        return cursor.rowcount > 0
 
 # NO MODIFICAR - INICIO
 @reset_tabla
