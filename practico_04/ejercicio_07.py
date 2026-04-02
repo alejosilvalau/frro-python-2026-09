@@ -5,6 +5,9 @@ import datetime
 from practico_04.ejercicio_02 import agregar_persona
 from practico_04.ejercicio_06 import reset_tabla
 
+import sqlite3  
+from contextlib import closing
+from ejercicio_04 import buscar_persona
 
 def agregar_peso(id_persona, fecha, peso):
     """Implementar la funcion agregar_peso, que inserte un registro en la tabla 
@@ -20,7 +23,22 @@ def agregar_peso(id_persona, fecha, peso):
     - ID del peso registrado.
     - False en caso de no cumplir con alguna validacion."""
 
-    pass # Completar
+    if not buscar_persona(id_persona):
+        return False
+    
+    conexion = sqlite3.connect('practico.db')
+    with closing(conexion), conexion:
+        cursor = conexion.execute(
+            "SELECT 1 FROM PersonaPeso WHERE IdPersona = ? AND Fecha > ?",
+            (id_persona, fecha)
+        )
+        if cursor.fetchone() is not None:
+            return False
+        cursor_insert = conexion.execute(
+            "INSERT INTO PersonaPeso (IdPersona, Fecha, Peso) VALUES (?, ?, ?)",
+            (id_persona, fecha, peso)
+        )
+        return cursor_insert.lastrowid
 
 
 # NO MODIFICAR - INICIO
