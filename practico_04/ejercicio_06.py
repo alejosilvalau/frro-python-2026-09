@@ -2,6 +2,8 @@
 
 from practico_04.ejercicio_01 import borrar_tabla, crear_tabla
 
+import sqlite3
+from contextlib import suppress, closing
 
 def crear_tabla_peso():
     """Implementar la funcion crear_tabla_peso, que cree una tabla PersonaPeso con:
@@ -9,13 +11,23 @@ def crear_tabla_peso():
         - Fecha: Date()
         - Peso: Int()
     """
-    pass # Completar
-
+    conexion = sqlite3.connect('practico.db')
+    with suppress(sqlite3.OperationalError), closing(conexion), conexion:
+        conexion.execute("""
+            CREATE TABLE IF NOT EXISTS PersonaPeso (
+                IdPersona INTEGER,
+                Fecha DATE,
+                Peso INTEGER,
+                FOREIGN KEY (IdPersona) REFERENCES Persona(IdPersona)
+            )
+        """)
 
 def borrar_tabla_peso():
     """Implementar la funcion borrar_tabla, que borra la tabla creada 
     anteriormente."""
-    pass # Completar
+    conexion = sqlite3.connect('practico.db')
+    with suppress(sqlite3.OperationalError), closing(conexion), conexion:
+        conexion.execute("DROP TABLE IF EXISTS PersonaPeso")
 
 
 # NO MODIFICAR - INICIO
