@@ -49,6 +49,7 @@ except AttributeError:
 
 from dataclasses import dataclass
 
+
 @dataclass
 class Auto:
     """Re-Escribir utilizando DataClasses"""

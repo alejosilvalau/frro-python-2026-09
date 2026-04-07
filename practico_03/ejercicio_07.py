@@ -46,5 +46,5 @@ assert precios_actualizados
 # Test de precios
 for precio_viejo, precio_nuevo in zip(precios_desactualizados, precios_actualizados):
     assert precio_nuevo == precio_viejo * (1 + porcentaje_aumento / 100)
-    
+
 # NO MODIFICAR - FIN
