@@ -1,0 +1,31 @@
+name: Práctico 02
+
+on:
+  push:
+    branches: "**2**"
+
+  workflow_dispatch:
+
+jobs:
+
+  basic-test:
+    name: Test Básicos (Imports)
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          architecture: 'x64'
+
+      # solo corremos los scripts para ver si los imports explotan.
+      - name: Run Import Tests
+        working-directory: ./practico_02
+        run: |
+          python -m ejercicio_01
+          python -m source.ejercicio_02
+          python -m source.controller.ejercicio_03
