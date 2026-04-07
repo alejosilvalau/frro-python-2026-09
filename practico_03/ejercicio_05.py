@@ -3,15 +3,29 @@
 
 class Auto:
     """La clase auto tiene dos propiedades, precio y marca. La marca se define
-    obligatoriamente al construir la clase y siempre que se devuelve, se 
+    obligatoriamente al construir la clase y siempre que se devuelve, se
     devuelve con la primer letra en mayúscula y no se puede modificar. El precio
     puede modificarse pero cuando se muestra, se redondea a 2 decimales
-    
+
     Restricción: Usar Properties
-    
+
     Referencia: https://docs.python.org/3/library/functions.html#property"""
 
-    # Completar
+    def __init__(self, nombre, precio):
+        self._nombre = nombre
+        self._precio = precio
+
+    @property
+    def nombre(self):
+        return self._nombre.capitalize()
+
+    @property
+    def precio(self):
+        return round(self._precio, 2)
+
+    @precio.setter
+    def precio(self, value):
+        self._precio = value
 
 
 # NO MODIFICAR - INICIO
@@ -38,8 +52,20 @@ from dataclasses import dataclass
 @dataclass
 class Auto:
     """Re-Escribir utilizando DataClasses"""
+    _nombre: str
+    _precio: float
 
-    # Completar
+    @property
+    def nombre(self):
+        return self._nombre.capitalize()
+
+    @property
+    def precio(self):
+        return round(self._precio, 2)
+
+    @precio.setter
+    def precio(self, value):
+        self._precio = value
 
 
 # NO MODIFICAR - INICIO

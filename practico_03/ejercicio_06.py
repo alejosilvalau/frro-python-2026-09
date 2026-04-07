@@ -16,7 +16,11 @@ class Article:
 
     # NO MODIFICAR - FIN
 
-    # Completar
+    def __eq__(self, otro):
+        return self.name == otro.name
+
+    def __repr__(self):
+        return f'Article("{self.name}")'
 
 
 # NO MODIFICAR - INICIO
@@ -49,7 +53,20 @@ class ShoppingCart:
 
     # NO MODIFICAR - FIN
 
-    # Completar
+    def __str__(self):
+        nombres = [x.name for x in self.articles]
+        return str(nombres)
+
+    def __repr__(self):
+        return f"ShoppingCart({self.articles!r})"
+
+    def __eq__(self, otro):
+        mine = sorted([x.name for x in self.articles])
+        theirs = sorted([x.name for x in otro.articles])
+        return mine == theirs
+
+    def __add__(self, otro):
+        return ShoppingCart(self.articles + otro.articles)
 
 
 # NO MODIFICAR - INICIO
