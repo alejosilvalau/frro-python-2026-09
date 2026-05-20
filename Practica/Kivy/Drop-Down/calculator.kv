@@ -1,0 +1,169 @@
+#:kivy 2.0
+
+<CalculatorScreen>:
+    orientation: "vertical"
+    size_hint: None, None
+    width: "360dp"
+    height: "500dp"
+    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+    padding: "24dp"
+    spacing: "24dp"
+
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_y: None
+        height: "100dp"
+        spacing: "8dp"
+        padding: "0dp"
+
+        Label:
+            text: "Calculator"
+            size_hint_y: None
+            height: "40dp"
+            font_size: "32sp"
+            bold: True
+            color: 1, 1, 1, 1
+
+        Label:
+            text: "Simple & Clean"
+            size_hint_y: None
+            height: "30dp"
+            font_size: "14sp"
+            color: 1, 1, 1, 1
+
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_y: None
+        height: "280dp"
+        spacing: "16dp"
+
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: "100dp"
+            spacing: "12dp"
+
+            Label:
+                text: "Select Numbers & Operation"
+                size_hint_y: None
+                height: "30dp"
+                font_size: "14sp"
+                color: 1, 1, 1, 1
+
+            BoxLayout:
+                orientation: "horizontal"
+                size_hint_y: None
+                height: "50dp"
+                spacing: "12dp"
+
+                DropDownButton:
+                    id: first_button
+                    text: root.first_value
+                    on_release: root.show_first_dropdown(self)
+
+                DropDownButton:
+                    id: operation_button
+                    text: root.operation
+                    on_release: root.show_operation_dropdown(self)
+
+                DropDownButton:
+                    id: second_button
+                    text: root.second_value
+                    on_release: root.show_second_dropdown(self)
+
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_y: None
+            height: "140dp"
+            spacing: "12dp"
+
+            Label:
+                text: "Result"
+                size_hint_y: None
+                height: "30dp"
+                font_size: "14sp"
+                color: 1, 1, 1, 1
+
+            BoxLayout:
+                orientation: "horizontal"
+                size_hint_y: None
+                height: "80dp"
+                spacing: "12dp"
+                padding: "16dp"
+
+                canvas.before:
+                    Color:
+                        rgba: 1, 1, 1, 1
+                    RoundedRectangle:
+                        size: self.size
+                        pos: self.pos
+                        radius: [16, 16, 16, 16]
+
+                Label:
+                    text: root.first_value
+                    font_size: "28sp"
+                    bold: True
+                    color: 0.2, 0.2, 0.2, 1
+
+                Label:
+                    text: root.operation
+                    font_size: "24sp"
+                    color: 0.3, 0.3, 0.3, 1
+                    size_hint_x: None
+                    width: "40dp"
+
+                Label:
+                    text: root.second_value
+                    font_size: "28sp"
+                    bold: True
+                    color: 0.2, 0.2, 0.2, 1
+
+                Label:
+                    text: "="
+                    font_size: "24sp"
+                    color: 0.2, 0.7, 0.2, 1
+                    size_hint_x: None
+                    width: "40dp"
+
+                Label:
+                    text: root.result
+                    font_size: "32sp"
+                    bold: True
+                    color: 0.0, 0.48, 1.0, 1
+                    size_hint_x: None
+                    width: "80dp"
+
+    Widget:
+        size_hint_y: 1
+
+
+<DropDownButton@Button>:
+    background_color: 0.94, 0.94, 0.96, 1
+    color: 1, 1, 1, 1
+    font_size: "18sp"
+    bold: True
+    valign: "middle"
+    halign: "center"
+
+    canvas.before:
+        Color:
+            rgba: 0.94, 0.94, 0.96, 1
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [12, 12, 12, 12]
+
+
+<DropdownItem@Button>:
+    size_hint_y: None
+    height: "40dp"
+    background_color: 1, 1, 1, 1
+    color: 1, 1, 1, 1
+    font_size: "16sp"
+    bold: True
+    valign: "middle"
+    halign: "center"
