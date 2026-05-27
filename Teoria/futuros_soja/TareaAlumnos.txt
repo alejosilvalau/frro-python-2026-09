@@ -1,0 +1,7 @@
+Tarea 
+
+1 Obtener todos los precios que tuvo posición SOJ.ROS/NOV26 de pyrofex con clave acceso user="", password="", account="REM20072",  environment=pyRofex.Environment.REMARKET , tiene que obtener la fecha de posición operada , guarde los datos en archivo excel  
+
+2 Hacer una grafica de datos obtenidos en la tarea 1 en que que el eje x sea el tiempo y el exe y el valor en dolares , con grafico ara que grafique un grafico de velas de cotizacion de cada dia , en formato jpg 
+
+3 Generar html que tenga incorporato el JPG del ejercicio 2 
