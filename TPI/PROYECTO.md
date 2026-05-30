@@ -12,7 +12,7 @@ El sistema resuelve los siguientes problemas concretos:
 
 ## Modelo de Dominio
 
-![Diagrama de Clases](./diagrama-de-clases-v1.jpg)
+![Diagrama de Clases](./diagrama-de-clases-v2.jpg)
 
 ## Bosquejo de Arquitectura
 
