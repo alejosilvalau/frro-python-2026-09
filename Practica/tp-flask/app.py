@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import Mapped, relationship
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///university.db"
@@ -8,30 +9,33 @@ db = SQLAlchemy(app)
 
 
 class Student(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    grades = db.relationship("Grade", backref="student", lazy=True, cascade="all, delete-orphan")
+    id: Mapped[int] = db.Column(db.Integer, primary_key=True)
+    name: Mapped[str] = db.Column(db.String(100), nullable=False)
+    email: Mapped[str] = db.Column(db.String(120), unique=True, nullable=False)
+    grades: Mapped[list["Grade"]] = relationship(back_populates="student", lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "email": self.email}
 
 
 class Subject(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    code = db.Column(db.String(20), unique=True, nullable=False)
-    grades = db.relationship("Grade", backref="subject", lazy=True, cascade="all, delete-orphan")
+    id: Mapped[int] = db.Column(db.Integer, primary_key=True)
+    name: Mapped[str] = db.Column(db.String(100), nullable=False)
+    code: Mapped[str] = db.Column(db.String(20), unique=True, nullable=False)
+    grades: Mapped[list["Grade"]] = relationship(back_populates="subject", lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "code": self.code}
 
 
 class Grade(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    value = db.Column(db.Float, nullable=False)
-    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
+    id: Mapped[int] = db.Column(db.Integer, primary_key=True)
+    value: Mapped[float] = db.Column(db.Float, nullable=False)
+    student_id: Mapped[int] = db.Column(db.Integer, db.ForeignKey("student.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    subject_id: Mapped[int] = db.Column(db.Integer, db.ForeignKey("subject.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    
+    student: Mapped["Student"] = relationship(back_populates="grades")
+    subject: Mapped["Subject"] = relationship(back_populates="grades")
 
     def to_dict(self):
         return {
