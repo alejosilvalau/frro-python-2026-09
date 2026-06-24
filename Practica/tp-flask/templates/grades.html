@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Grades - University API{% endblock %}
+{% block content %}
+<h1>Grades</h1>
+
+<div class="card">
+    <h3 id="form-title">Create Grade</h3>
+    <form id="grade-form" class="form-row mt-1">
+        <input type="hidden" id="grade-id">
+        <label>Student <select id="grade-student" required></select></label>
+        <label>Subject <select id="grade-subject" required></select></label>
+        <label>Value <input type="number" id="grade-value" min="0" max="10" step="0.1" required></label>
+        <div style="display:flex; gap:0.5rem; align-self:flex-end">
+            <button type="submit" class="btn-primary" id="submit-btn">Create</button>
+            <button type="button" class="btn-secondary hidden" id="cancel-btn" onclick="resetForm()">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead><tr><th>ID</th><th>Student</th><th>Subject</th><th>Value</th><th>Actions</th></tr></thead>
+        <tbody id="grades-table"></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API = '/api/grades';
+    let students = [], subjects = [];
+    const form = document.getElementById('grade-form');
+    const tbody = document.getElementById('grades-table');
+
+    async function loadDropdowns() {
+        const [sRes, subRes] = await Promise.all([fetch('/api/students'), fetch('/api/subjects')]);
+        students = await sRes.json();
+        subjects = await subRes.json();
+        const sSel = document.getElementById('grade-student');
+        const subSel = document.getElementById('grade-subject');
+        sSel.innerHTML = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        subSel.innerHTML = subjects.map(s => `<option value="${s.id}">${s.name} (${s.code})</option>`).join('');
+    }
+
+    async function load() {
+        await loadDropdowns();
+        const res = await fetch(API);
+        const data = await res.json();
+        tbody.innerHTML = data.map(g => `
+            <tr>
+                <td>${g.id}</td>
+                <td>${g.student_name}</td>
+                <td>${g.subject_name}</td>
+                <td>${g.value}</td>
+                <td class="actions">
+                    <button class="btn-primary btn-sm" onclick="edit(${g.id})">Edit</button>
+                    <button class="btn-danger btn-sm" onclick="remove(${g.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('grade-id').value;
+        const body = {
+            value: parseFloat(document.getElementById('grade-value').value),
+            student_id: parseInt(document.getElementById('grade-student').value),
+            subject_id: parseInt(document.getElementById('grade-subject').value)
+        };
+        if (id) {
+            await fetch(`${API}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Grade updated');
+        } else {
+            await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Grade created');
+        }
+        resetForm();
+        load();
+    };
+
+    async function edit(id) {
+        const res = await fetch(`${API}/${id}`);
+        const g = await res.json();
+        document.getElementById('grade-id').value = g.id;
+        document.getElementById('grade-student').value = g.student_id;
+        document.getElementById('grade-subject').value = g.subject_id;
+        document.getElementById('grade-value').value = g.value;
+        document.getElementById('form-title').textContent = 'Edit Grade';
+        document.getElementById('submit-btn').textContent = 'Update';
+        document.getElementById('cancel-btn').classList.remove('hidden');
+    }
+
+    async function remove(id) {
+        if (!confirm('Delete this grade?')) return;
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        showToast('Grade deleted');
+        load();
+    }
+
+    function resetForm() {
+        form.reset();
+        document.getElementById('grade-id').value = '';
+        document.getElementById('form-title').textContent = 'Create Grade';
+        document.getElementById('submit-btn').textContent = 'Create';
+        document.getElementById('cancel-btn').classList.add('hidden');
+    }
+
+    load();
+</script>
+{% endblock %}

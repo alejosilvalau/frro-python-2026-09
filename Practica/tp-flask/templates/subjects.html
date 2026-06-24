@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Subjects - University API{% endblock %}
+{% block content %}
+<h1>Subjects</h1>
+
+<div class="card">
+    <h3 id="form-title">Create Subject</h3>
+    <form id="subject-form" class="form-row mt-1">
+        <input type="hidden" id="subject-id">
+        <label>Name <input type="text" id="subject-name" required></label>
+        <label>Code <input type="text" id="subject-code" required></label>
+        <div style="display:flex; gap:0.5rem; align-self:flex-end">
+            <button type="submit" class="btn-primary" id="submit-btn">Create</button>
+            <button type="button" class="btn-secondary hidden" id="cancel-btn" onclick="resetForm()">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Code</th><th>Actions</th></tr></thead>
+        <tbody id="subjects-table"></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API = '/api/subjects';
+    const form = document.getElementById('subject-form');
+    const tbody = document.getElementById('subjects-table');
+
+    async function load() {
+        const res = await fetch(API);
+        const data = await res.json();
+        tbody.innerHTML = data.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.code}</td>
+                <td class="actions">
+                    <button class="btn-primary btn-sm" onclick="edit(${s.id})">Edit</button>
+                    <button class="btn-danger btn-sm" onclick="remove(${s.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('subject-id').value;
+        const body = { name: document.getElementById('subject-name').value, code: document.getElementById('subject-code').value };
+        if (id) {
+            await fetch(`${API}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Subject updated');
+        } else {
+            await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Subject created');
+        }
+        resetForm();
+        load();
+    };
+
+    async function edit(id) {
+        const res = await fetch(`${API}/${id}`);
+        const s = await res.json();
+        document.getElementById('subject-id').value = s.id;
+        document.getElementById('subject-name').value = s.name;
+        document.getElementById('subject-code').value = s.code;
+        document.getElementById('form-title').textContent = 'Edit Subject';
+        document.getElementById('submit-btn').textContent = 'Update';
+        document.getElementById('cancel-btn').classList.remove('hidden');
+    }
+
+    async function remove(id) {
+        if (!confirm('Delete this subject?')) return;
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        showToast('Subject deleted');
+        load();
+    }
+
+    function resetForm() {
+        form.reset();
+        document.getElementById('subject-id').value = '';
+        document.getElementById('form-title').textContent = 'Create Subject';
+        document.getElementById('submit-btn').textContent = 'Create';
+        document.getElementById('cancel-btn').classList.add('hidden');
+    }
+
+    load();
+</script>
+{% endblock %}

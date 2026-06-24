@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Students - University API{% endblock %}
+{% block content %}
+<h1>Students</h1>
+
+<div class="card">
+    <h3 id="form-title">Create Student</h3>
+    <form id="student-form" class="form-row mt-1">
+        <input type="hidden" id="student-id">
+        <label>Name <input type="text" id="student-name" required></label>
+        <label>Email <input type="email" id="student-email" required></label>
+        <div style="display:flex; gap:0.5rem; align-self:flex-end">
+            <button type="submit" class="btn-primary" id="submit-btn">Create</button>
+            <button type="button" class="btn-secondary hidden" id="cancel-btn" onclick="resetForm()">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+        <tbody id="students-table"></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API = '/api/students';
+    const form = document.getElementById('student-form');
+    const tbody = document.getElementById('students-table');
+
+    async function load() {
+        const res = await fetch(API);
+        const data = await res.json();
+        tbody.innerHTML = data.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.email}</td>
+                <td class="actions">
+                    <button class="btn-primary btn-sm" onclick="edit(${s.id})">Edit</button>
+                    <button class="btn-danger btn-sm" onclick="remove(${s.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('student-id').value;
+        const body = { name: document.getElementById('student-name').value, email: document.getElementById('student-email').value };
+        if (id) {
+            await fetch(`${API}/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Student updated');
+        } else {
+            await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showToast('Student created');
+        }
+        resetForm();
+        load();
+    };
+
+    async function edit(id) {
+        const res = await fetch(`${API}/${id}`);
+        const s = await res.json();
+        document.getElementById('student-id').value = s.id;
+        document.getElementById('student-name').value = s.name;
+        document.getElementById('student-email').value = s.email;
+        document.getElementById('form-title').textContent = 'Edit Student';
+        document.getElementById('submit-btn').textContent = 'Update';
+        document.getElementById('cancel-btn').classList.remove('hidden');
+    }
+
+    async function remove(id) {
+        if (!confirm('Delete this student?')) return;
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        showToast('Student deleted');
+        load();
+    }
+
+    function resetForm() {
+        form.reset();
+        document.getElementById('student-id').value = '';
+        document.getElementById('form-title').textContent = 'Create Student';
+        document.getElementById('submit-btn').textContent = 'Create';
+        document.getElementById('cancel-btn').classList.add('hidden');
+    }
+
+    load();
+</script>
+{% endblock %}

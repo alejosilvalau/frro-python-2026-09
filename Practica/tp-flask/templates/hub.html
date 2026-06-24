@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Hub - University API{% endblock %}
+{% block content %}
+<h1>University Management</h1>
+<p>Select an entity to manage:</p>
+<div class="hub-grid">
+    <a href="/students" class="hub-card">
+        <h2>Students</h2>
+        <p>Manage student records</p>
+    </a>
+    <a href="/subjects" class="hub-card">
+        <h2>Subjects</h2>
+        <p>Manage course subjects</p>
+    </a>
+    <a href="/grades" class="hub-card">
+        <h2>Grades</h2>
+        <p>Manage student grades</p>
+    </a>
+</div>
+{% endblock %}
