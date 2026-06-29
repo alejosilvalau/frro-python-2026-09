@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Lista de Socios{% endblock %}
+
+{% block content %}
+<h1>Gestión de Socios</h1>
+
+<a href="{{ url_for('alta') }}" class="btn btn-alta">Alta</a>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>DNI</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for socio in socios %}
+        <tr>
+            <td>{{ socio.id_socio }}</td>
+            <td>{{ socio.dni }}</td>
+            <td>{{ socio.nombre }}</td>
+            <td>{{ socio.apellido }}</td>
+            <td>
+                <a href="{{ url_for('modificar', id=socio.id_socio) }}" class="btn btn-modificar">Modificar</a>
+                <form action="{{ url_for('baja', id=socio.id_socio) }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-baja">Baja</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

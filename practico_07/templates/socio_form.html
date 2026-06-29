@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}{% if modificar %}Modificar Socio{% else %}Alta de Socio{% endif %}{% endblock %}
+
+{% block content %}
+<h1>{% if modificar %}Modificar Socio{% else %}Alta de Socio{% endif %}</h1>
+
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
+
+<form method="POST">
+    <label for="dni">DNI:</label>
+    <input type="number" id="dni" name="dni" value="{{ socio.dni if socio else '' }}" required>
+
+    <label for="nombre">Nombre:</label>
+    <input type="text" id="nombre" name="nombre" value="{{ socio.nombre if socio else '' }}" required>
+
+    <label for="apellido">Apellido:</label>
+    <input type="text" id="apellido" name="apellido" value="{{ socio.apellido if socio else '' }}" required>
+
+    <button type="submit" class="btn btn-alta">{% if modificar %}Aceptar{% else %}Guardar{% endif %}</button>
+    <a href="{{ url_for('index') }}" class="btn btn-cancelar">Cancelar</a>
+</form>
+{% endblock %}

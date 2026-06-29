@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestión de Socios{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .btn { padding: 5px 10px; margin: 2px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-alta { background-color: #4CAF50; color: white; }
+        .btn-baja { background-color: #f44336; color: white; }
+        .btn-modificar { background-color: #2196F3; color: white; }
+        .btn-cancelar { background-color: #607D8B; color: white; }
+        form { margin: 10px 0; }
+        label { display: block; margin: 5px 0; }
+        input { padding: 5px; margin: 5px 0; }
+        .error { color: red; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
