@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar Baja{% endblock %}
+
+{% block content %}
+<h1>Confirmar Baja</h1>
+
+<p>¿Está seguro que desea dar de baja al socio {{ socio.nombre }} {{ socio.apellido }} (DNI: {{ socio.dni }})?</p>
+
+<form action="{{ url_for('baja', id=socio.id_socio) }}" method="POST">
+    <button type="submit" class="btn btn-baja">Aceptar</button>
+    <a href="{{ url_for('index') }}" class="btn btn-cancelar">Cancelar</a>
+</form>
+{% endblock %}
