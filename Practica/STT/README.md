@@ -16,7 +16,7 @@ brew install ffmpeg
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install openai-whisper watchdog
+pip install -r requirements.txt
 ```
 
 ## Uso
@@ -28,15 +28,15 @@ source venv/bin/activate
 python watcher.py
 ```
 
-2. Copiá un audio a la carpeta `audios/` (ver instrucciones en `audios/README.md`).
+1. Copiá un audio a la carpeta `audios/` (ver instrucciones en `audios/README.md`).
 
-3. El script lo detecta solo y en unos segundos genera el resultado en `audios/salidas/<nombre>.txt`.
+1. El script lo detecta solo y en unos segundos genera el resultado en `audios/salidas/<nombre>.txt`.
 
-4. Para detenerlo: `Ctrl+C`.
+1. Para detenerlo: `Ctrl+C`.
 
 ## Estructura
 
-```
+```text
 STT/
 ├── watcher.py        <- vigila audios/ y procesa automáticamente
 ├── transcriptor.py   <- transcribe con Whisper (modelo small, español rioplatense)
