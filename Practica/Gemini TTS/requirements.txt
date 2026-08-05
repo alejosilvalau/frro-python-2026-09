@@ -1,0 +1,8 @@
+google-generativeai
+gTTS
+pygame
+python-dotenv
+SpeechRecognition
+pyaudio
+numpy
+resemblyzer
