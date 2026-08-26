@@ -55,7 +55,7 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Monto Invertido</h5>
+                <h5 class="card-title">Monto Invertido (ARS)</h5>
                 <h3 class="card-text">${{ performance.invested_amount|floatformat:2 }}</h3>
             </div>
         </div>
@@ -63,7 +63,7 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Valor Actual</h5>
+                <h5 class="card-title">Valor Actual (ARS)</h5>
                 <h3 class="card-text">${{ performance.current_value|floatformat:2 }}</h3>
             </div>
         </div>
@@ -71,7 +71,7 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Ganancia/Pérdida</h5>
+                <h5 class="card-title">Ganancia/Pérdida (ARS)</h5>
                 <h3 class="card-text {% if performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
                     ${{ performance.profit_loss|floatformat:2 }}
                     ({{ performance.profit_loss_percentage|floatformat:2 }}%)

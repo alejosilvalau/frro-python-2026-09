@@ -83,10 +83,10 @@ class PortfolioManager:
         delete_position(position_id)
 
     def calculate_position_performance(self, position):
-        buy_price = Decimal(str(position.stock_price_usd))
+        buy_price = Decimal(str(position.stock_price_local))
         invested_amount = position.amount * buy_price
-        current_price_usd = self.external_apis.get_current_price(position.stock.ticker) or buy_price
-        current_value = position.amount * current_price_usd
+        current_price = self.external_apis.get_current_price(position.stock.ticker) or buy_price
+        current_value = position.amount * current_price
 
         profit_loss = current_value - invested_amount
         profit_loss_percentage = (profit_loss / invested_amount * 100) if invested_amount > 0 else Decimal('0')
@@ -145,8 +145,8 @@ class PortfolioManager:
         total_current_value = Decimal('0')
 
         for position in positions:
-            current_price = self.external_apis.get_current_price(position.stock.ticker) or position.stock_price_usd
-            total_invested += position.amount * position.stock_price_usd
+            current_price = self.external_apis.get_current_price(position.stock.ticker) or position.stock_price_local
+            total_invested += position.amount * position.stock_price_local
             total_current_value += position.amount * current_price
 
         profit_loss = total_current_value - total_invested
@@ -169,7 +169,7 @@ class PortfolioManager:
             sector = position.stock.sector.name if position.stock.sector else 'Sin sector'
             if sector not in sector_distribution:
                 sector_distribution[sector] = Decimal('0')
-            sector_distribution[sector] += position.amount * position.stock_price_usd
+            sector_distribution[sector] += position.amount * position.stock_price_local
 
         return {
             'total_invested': total_invested,
