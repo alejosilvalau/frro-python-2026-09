@@ -4,7 +4,8 @@ import requests
 from .data_access import (
     get_positions_by_user, get_position_by_id, create_position,
     update_position, delete_position, get_orders_by_position,
-    get_order_by_id, create_order, delete_order
+    get_order_by_id, create_order, delete_order,
+    get_stock_price_from_iol,
 )
 
 
@@ -40,9 +41,12 @@ class ExternalAPIs:
             return Decimal('0')
 
     @staticmethod
-    def get_current_price(ticker):
+    def get_current_price(ticker, mercado='bCBA'):
         try:
-            return Decimal('150.00')
+            price = get_stock_price_from_iol(ticker, mercado)
+            if price is not None:
+                return Decimal(str(price))
+            return None
         except Exception:
             return None
 

@@ -1,7 +1,69 @@
+import os
+import time
+
+import requests
 from django.shortcuts import get_object_or_404
 
 from .models import Position, Order
 from core.data_access import get_user_by_id, get_stock_by_id, get_broker_by_id
+
+_IOL_BASE = 'https://api.invertironline.com'
+_iol_token = {'access_token': None, 'refresh_token': None, 'expires_at': 0}
+
+
+def _iol_authenticate():
+    resp = requests.post(
+        f'{_IOL_BASE}/token',
+        data={
+            'grant_type': 'password',
+            'username': os.environ.get('IOL_USER', ''),
+            'password': os.environ.get('IOL_PASSWORD', ''),
+            'scope': 'APIv2',
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    _iol_token['access_token'] = data['access_token']
+    _iol_token['refresh_token'] = data['refresh_token']
+    _iol_token['expires_at'] = time.time() + data.get('expires_in', 1800) - 60
+    return _iol_token['access_token']
+
+
+def _iol_refresh():
+    resp = requests.post(
+        f'{_IOL_BASE}/token',
+        data={
+            'grant_type': 'refresh_token',
+            'refresh_token': _iol_token['refresh_token'],
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    _iol_token['access_token'] = data['access_token']
+    _iol_token['refresh_token'] = data.get('refresh_token', _iol_token['refresh_token'])
+    _iol_token['expires_at'] = time.time() + data.get('expires_in', 1800) - 60
+    return _iol_token['access_token']
+
+
+def _get_iol_token():
+    if _iol_token['access_token'] and time.time() < _iol_token['expires_at']:
+        return _iol_token['access_token']
+    if _iol_token['refresh_token']:
+        try:
+            return _iol_refresh()
+        except Exception:
+            pass
+    return _iol_authenticate()
+
+
+def get_stock_price_from_iol(ticker, mercado='bCBA'):
+    token = _get_iol_token()
+    url = f'{_IOL_BASE}/api/v2/{mercado}/Titulos/{ticker}/Cotizacion'
+    resp = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    resp.raise_for_status()
+    return resp.json().get('ultimoPrecio')
 
 
 def get_positions_by_user(user_id):
