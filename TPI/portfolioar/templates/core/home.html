@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}PortfolioAR - Sistema de Gestión de Inversiones{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center">
+        <h1 class="display-4 mb-4">PortfolioAR</h1>
+        <p class="lead mb-4">Sistema de gestión de inversiones para inversores argentinos</p>
+        <p class="mb-4">
+            Gestiona tu cartera de inversiones, obtén métricas reales de rendimiento,
+            análisis técnico automatizado y alertas configurables basadas en indicadores financieros.
+        </p>
+
+        {% if not user.is_authenticated %}
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Comienza ahora</h5>
+                        <p class="card-text">
+                            Registrate para empezar a gestionar tu portafolio de inversiones.
+                        </p>
+                        <a href="{% url 'core:register' %}" class="btn btn-primary me-2">Registrarse</a>
+                        <a href="{% url 'core:login' %}" class="btn btn-outline-secondary">Iniciar sesión</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Dashboard</h5>
+                                <p class="card-text">Resumen de tu portafolio</p>
+                                <a href="{% url 'portfolio:dashboard' %}" class="btn btn-light">Ver Dashboard</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-success mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Posiciones</h5>
+                                <p class="card-text">Gestiona tus inversiones</p>
+                                <a href="{% url 'portfolio:position_list' %}" class="btn btn-light">Ver Posiciones</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-warning mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Alertas</h5>
+                                <p class="card-text">Configura alertas técnicas</p>
+                                <a href="{% url 'alerts:alert_list' %}" class="btn btn-light">Ver Alertas</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-chart-line"></i> Métricas de Rendimiento</h5>
+                <p class="card-text">
+                    Calcula el rendimiento de cada posición comparado contra el S&P 500
+                    y la inflación argentina oficial.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-bell"></i> Alertas Técnicas</h5>
+                <p class="card-text">
+                    Configura alertas basadas en indicadores técnicos como RSI, MACD,
+                    volumen y más.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-robot"></i> Asistente IA</h5>
+                <p class="card-text">
+                    Obtén interpretaciones en lenguaje natural de los resultados calculados
+                    y recomendaciones personalizadas.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
