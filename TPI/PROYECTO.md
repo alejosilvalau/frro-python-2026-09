@@ -119,3 +119,71 @@ División vertical por casos de uso:
 
 - **Django**: framework web completo (batteries included). Se eligió por su ORM integrado, sistema de autenticación y gestión de sesiones listos para usar, panel de administración y alta demanda laboral en el mercado argentino. 
 - **Django Templates**: sistema de templates incluido en Django para renderizar las vistas del portfolio, alertas y análisis. Permite migrar a React en el futuro si se desea separar el frontend.
+
+## Reglas de Negocio
+
+- **RN01 – Contraseña mínima**: La contraseña del usuario debe tener como mínimo 8 caracteres. El registro y el cambio de contraseña fallan si no se cumple esta condición.
+- **RN02 – Email único**: No pueden existir dos usuarios registrados con el mismo correo electrónico. El sistema rechaza el registro si el email ya está en uso.
+- **RN03 – Cantidad positiva**: La cantidad de títulos al registrar una posición o una orden debe ser mayor a cero.
+- **RN04 – Precio positivo**: El precio de compra al registrar una posición debe ser mayor a cero.
+- **RN05 – Operadores válidos**: Los operadores de condición de alerta deben ser uno de los siguientes: `>`, `<`, `>=`, `<=`, `==`, `!=`. Cualquier otro operador es rechazado.
+- **RN06 – Evaluación AND de alertas**: Una alerta se dispara únicamente si **todas** sus condiciones se cumplen de forma simultánea (lógica AND). Si alguna condición no se cumple, la alerta no se dispara aunque el resto sí lo hagan.
+
+## Casos de Uso Principales
+
+### CU01 – Registrar posición de compra
+
+| Campo | Descripción |
+| --- | --- |
+| **Actor** | Usuario autenticado |
+| **Precondición** | El usuario inició sesión. El ticker de la acción existe en el sistema. |
+| **Camino básico** | 1. El usuario navega a "Posiciones → Nueva posición". 2. Completa ticker, cantidad, precio de compra, broker y fecha. 3. El sistema valida RN03 y RN04. 4. La posición se guarda y redirige al listado. |
+| **Camino alternativo** | Si cantidad ≤ 0 o precio ≤ 0, el sistema muestra un error y no guarda la posición. |
+
+### CU02 – Consultar rendimiento de una posición
+
+| Campo | Descripción |
+| --- | --- |
+| **Actor** | Usuario autenticado |
+| **Precondición** | El usuario tiene al menos una posición registrada. |
+| **Camino básico** | 1. El usuario accede al detalle de una posición. 2. El sistema obtiene el precio actual, calcula ganancia/pérdida absoluta y porcentual. 3. Compara el rendimiento contra el S&P 500 y contra la inflación INDEC del período. 4. Muestra los resultados con indicadores de color (verde/rojo). |
+| **Camino alternativo** | Si la API del INDEC no responde, se muestra un mensaje de error y se omite la comparación de inflación. |
+
+### CU03 – Configurar una alerta técnica
+
+| Campo | Descripción |
+| --- | --- |
+| **Actor** | Usuario autenticado |
+| **Precondición** | Existen indicadores técnicos y condiciones cargadas en el sistema. |
+| **Camino básico** | 1. El usuario navega a "Alertas → Nueva alerta". 2. Selecciona acción y nombre. 3. Desde el detalle de la alerta, agrega una o más condiciones existentes. 4. El sistema valida RN05. 5. La alerta queda activa y lista para ser evaluada. |
+| **Camino alternativo** | Si el operador de alguna condición no es válido (RN05), el sistema rechaza la condición con un mensaje de error. |
+
+## Bibliografía
+
+- Django Software Foundation. *Django documentation* (v4.2). <https://docs.djangoproject.com/en/4.2/>
+- Microsoft. *mssql-django – SQL Server backend for Django*. <https://github.com/microsoft/mssql-django>
+- The pandas development team. *pandas documentation*. <https://pandas.pydata.org/docs/>
+- pandas-ta contributors. *pandas-ta: Technical Analysis Indicators*. <https://github.com/twopirllc/pandas-ta>
+- LangChain Inc. *LangChain documentation*. <https://python.langchain.com/>
+- OpenAI. *OpenAI API Reference*. <https://platform.openai.com/docs/>
+- InvertirOnline. *API IOL – Documentación oficial*. <https://api.invertironline.com/>
+- Ministerio de Economía, Argentina. *API de Series de Tiempo – INDEC IPC*. <https://apis.datos.gob.ar/>
+
+## Documentación de Librerías
+
+| Librería | Versión | Uso en el proyecto |
+| --- | --- | --- |
+| Django | ≥ 4.2 | Framework web principal. ORM, vistas, templates, autenticación y sesiones. |
+| mssql-django | ≥ 1.3 | Backend de Django para conectarse a SQL Server en producción. |
+| python-dotenv | — | Carga variables de entorno desde `.env` en desarrollo local. |
+| requests | — | Llamadas HTTP a las APIs externas (IOL, INDEC). |
+| pandas | — | Manipulación de series temporales de precios para cálculos de rendimiento. |
+| pandas-ta | — | Cálculo de indicadores técnicos (RSI, MACD, etc.) sobre series de precios. |
+| langchain | — | Orquestación del asistente IA: prompt management e integración con LLM. |
+| openai | — | Cliente Python para la API de OpenAI (GPT-4.1-mini). |
+| pytest | — | Framework de tests. |
+| pytest-django | — | Plugin de pytest para proyectos Django (fixtures, settings de test). |
+
+## Link al Código Fuente
+
+Repositorio: <https://github.com/andresguerrero98/frro-python-2026-09> — rama `tpi`
