@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Posiciones - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Mis Posiciones</h2>
+        <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Nueva Posición</a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if positions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Empresa</th>
+                                <th>Cantidad</th>
+                                <th>Precio Compra (Local)</th>
+                                <th>Precio Compra (USD)</th>
+                                <th>Fecha Compra</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for position in positions %}
+                            <tr>
+                                <td>{{ position.stock.ticker }}</td>
+                                <td>{{ position.stock.company_name }}</td>
+                                <td>{{ position.amount }}</td>
+                                <td>${{ position.stock_price_local|floatformat:2 }}</td>
+                                <td>${{ position.stock_price_usd|floatformat:2 }}</td>
+                                <td>{{ position.purchased_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'portfolio:position_detail' position.id %}" class="btn btn-info btn-sm">Ver</a>
+                                    <a href="{% url 'portfolio:position_update' position.id %}" class="btn btn-warning btn-sm">Editar</a>
+                                    <a href="{% url 'portfolio:position_delete' position.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta posición?')">Eliminar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No tenés posiciones registradas todavía.</p>
+                    <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Agregar primera posición</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

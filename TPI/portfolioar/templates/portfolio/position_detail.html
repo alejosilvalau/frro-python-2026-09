@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Posición - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{{ position.stock.ticker }} - {{ position.stock.company_name }}</h2>
+            <div>
+                <a href="{% url 'portfolio:position_update' position.id %}" class="btn btn-warning">Editar</a>
+                <a href="{% url 'portfolio:position_delete' position.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta posición?')">Eliminar</a>
+                <a href="{% url 'portfolio:position_list' %}" class="btn btn-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Cantidad</h5>
+                <h3 class="card-text">{{ position.amount }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Precio Compra (Local)</h5>
+                <h3 class="card-text">${{ position.stock_price_local|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Precio Compra (USD)</h5>
+                <h3 class="card-text">${{ position.stock_price_usd|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Días Poseído</h5>
+                <h3 class="card-text">{{ performance.days_held }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Monto Invertido</h5>
+                <h3 class="card-text">${{ performance.invested_amount|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Valor Actual</h5>
+                <h3 class="card-text">${{ performance.current_value|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Ganancia/Pérdida</h5>
+                <h3 class="card-text {% if performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ performance.profit_loss|floatformat:2 }}
+                    ({{ performance.profit_loss_percentage|floatformat:2 }}%)
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Rendimiento Anualizado</h5>
+                <h3 class="card-text {% if performance.annualized_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ performance.annualized_return|floatformat:2 }}%
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Comparación S&P 500</h5>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="card-text"><small>Tu rendimiento:</small></p>
+                        <h4 class="{% if performance.profit_loss_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ performance.profit_loss_percentage|floatformat:2 }}%
+                        </h4>
+                    </div>
+                    <div class="col-6">
+                        <p class="card-text"><small>S&P 500:</small></p>
+                        <h4 class="{% if sp500.sp500_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ sp500.sp500_return|floatformat:2 }}%
+                        </h4>
+                    </div>
+                </div>
+                <hr>
+                <p class="card-text">Alpha:
+                    <strong class="{% if sp500.alpha >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ sp500.alpha|floatformat:2 }}%
+                    </strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Comparación Inflación</h5>
+                <div class="row">
+                    <div class="col-6">
+                        <p class="card-text"><small>Tu rendimiento:</small></p>
+                        <h4 class="{% if performance.profit_loss_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ performance.profit_loss_percentage|floatformat:2 }}%
+                        </h4>
+                    </div>
+                    <div class="col-6">
+                        <p class="card-text"><small>Inflación INDEC:</small></p>
+                        <h4 class="text-warning">
+                            {{ inflation.inflation|floatformat:2 }}%
+                        </h4>
+                    </div>
+                </div>
+                <hr>
+                <p class="card-text">Rendimiento Real:
+                    <strong class="{% if inflation.real_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ inflation.real_return|floatformat:2 }}%
+                    </strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Indicadores Técnicos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p><strong>RSI:</strong> {{ indicators.rsi|floatformat:2 }}</p>
+                        <p class="{% if indicators.rsi > 70 %}text-danger{% elif indicators.rsi < 30 %}text-success{% else %}text-muted{% endif %}">
+                            {% if indicators.rsi > 70 %}Sobrecomprado{% elif indicators.rsi < 30 %}Sobrevendido{% else %}Neutral{% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>MACD:</strong> {{ indicators.macd|floatformat:2 }}</p>
+                        <p><strong>Señal:</strong> {{ indicators.macd_signal|floatformat:2 }}</p>
+                        <p><strong>Histograma:</strong> {{ indicators.macd_histogram|floatformat:2 }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>SMA 20:</strong> ${{ indicators.sma_20|floatformat:2 }}</p>
+                        <p><strong>SMA 50:</strong> ${{ indicators.sma_50|floatformat:2 }}</p>
+                        <p><strong>EMA 30:</strong> ${{ indicators.ema_30|floatformat:2 }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Volumen Relativo:</strong> {{ indicators.volume_relative|floatformat:2 }}</p>
+                        <p><strong>Volatilidad:</strong> {{ indicators.volatility|floatformat:2 }}%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Órdenes</h5>
+                <a href="{% url 'portfolio:order_create' position.id %}" class="btn btn-primary btn-sm">Nueva Orden</a>
+            </div>
+            <div class="card-body">
+                {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cantidad</th>
+                                <th>Fecha</th>
+                                <th>Comisiones</th>
+                                <th>Precio (Local)</th>
+                                <th>Precio (USD)</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.amount }}</td>
+                                <td>{{ order.fulfill_datetime|date:"d/m/Y H:i" }}</td>
+                                <td>${{ order.total_fees|floatformat:2 }}</td>
+                                <td>${{ order.price_local|floatformat:2 }}</td>
+                                <td>${{ order.price_usd|floatformat:2 }}</td>
+                                <td>
+                                    <a href="{% url 'portfolio:order_delete' order.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta orden?')">Eliminar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay órdenes registradas para esta posición.</p>
+                    <a href="{% url 'portfolio:order_create' position.id %}" class="btn btn-primary">Agregar primera orden</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

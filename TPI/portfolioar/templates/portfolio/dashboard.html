@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Dashboard</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Valor Invertido</h5>
+                <h3 class="card-text">${{ summary.total_invested|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Valor Actual</h5>
+                <h3 class="card-text">${{ summary.total_current_value|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white {% if summary.profit_loss >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title">Ganancia/Pérdida</h5>
+                <h3 class="card-text">${{ summary.profit_loss|floatformat:2 }}</h3>
+                <p class="card-text">{{ summary.profit_loss_percentage|floatformat:2 }}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Posiciones</h5>
+                <h3 class="card-text">{{ summary.position_count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Comparación S&P 500</h5>
+                <h3 class="card-text {% if summary.alpha >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ summary.alpha|floatformat:2 }}%
+                </h3>
+                <p class="card-text">
+                    <small>Tu rendimiento: {{ summary.profit_loss_percentage|floatformat:2 }}% |
+                    S&P 500: {{ summary.sp500_return|floatformat:2 }}%</small>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Comparación Inflación</h5>
+                <h3 class="card-text {% if summary.real_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ summary.real_return|floatformat:2 }}%
+                </h3>
+                <p class="card-text">
+                    <small>Tu rendimiento: {{ summary.profit_loss_percentage|floatformat:2 }}% |
+                    Inflación: {{ summary.inflation|floatformat:2 }}%</small>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Distribución por Sector</h5>
+                {% for sector, value in summary.sector_distribution.items %}
+                <p class="card-text">
+                    <small>{{ sector }}: ${{ value|floatformat:2 }}</small>
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Posiciones Recientes</h5>
+                <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary btn-sm">Nueva Posición</a>
+            </div>
+            <div class="card-body">
+                {% if positions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Empresa</th>
+                                <th>Cantidad</th>
+                                <th>Precio Compra</th>
+                                <th>Precio Actual</th>
+                                <th>Ganancia/Pérdida</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in positions_with_performance %}
+                            <tr>
+                                <td>{{ item.position.stock.ticker }}</td>
+                                <td>{{ item.position.stock.company_name }}</td>
+                                <td>{{ item.position.amount }}</td>
+                                <td>${{ item.position.stock_price_local|floatformat:2 }}</td>
+                                <td>${{ item.position.stock_price_usd|floatformat:2 }}</td>
+                                <td class="{% if item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ item.performance.profit_loss|floatformat:2 }}
+                                    ({{ item.performance.profit_loss_percentage|floatformat:2 }}%)
+                                </td>
+                                <td>
+                                    <a href="{% url 'portfolio:position_detail' item.position.id %}" class="btn btn-info btn-sm">Ver</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No tenés posiciones registradas todavía.</p>
+                    <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Agregar primera posición</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
