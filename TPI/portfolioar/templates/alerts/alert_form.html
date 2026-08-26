@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if alert %}Editar Alerta{% else %}Nueva Alerta{% endif %} - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{% if alert %}Editar Alerta{% else %}Nueva Alerta{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="stock_id" class="form-label">Acción</label>
+                        <select class="form-select" id="stock_id" name="stock_id" required>
+                            <option value="">Seleccionar acción...</option>
+                            {% for stock in stocks %}
+                            <option value="{{ stock.id }}" {% if alert and alert.stock.id == stock.id %}selected{% endif %}>
+                                {{ stock.ticker }} - {{ stock.company_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nombre de la alerta</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ alert.name|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if not alert or alert.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Activa</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">{% if alert %}Guardar cambios{% else %}Crear alerta{% endif %}</button>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <a href="{% url 'alerts:alert_list' %}">Volver a la lista</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

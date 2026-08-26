@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Alerta - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>{{ alert.name }}</h2>
+            <div>
+                <a href="{% url 'alerts:alert_update' alert.id %}" class="btn btn-warning">Editar</a>
+                <a href="{% url 'alerts:alert_delete' alert.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</a>
+                <a href="{% url 'alerts:alert_list' %}" class="btn btn-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Acción</h5>
+                <h3 class="card-text">{{ alert.stock.ticker }}</h3>
+                <p class="card-text">{{ alert.stock.company_name }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Estado</h5>
+                <h3 class="card-text">
+                    {% if alert.is_active %}
+                    <span class="badge bg-success">Activa</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Inactiva</span>
+                    {% endif %}
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Fecha Creación</h5>
+                <h3 class="card-text">{{ alert.created_at|date:"d/m/Y H:i" }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Condiciones</h5>
+            </div>
+            <div class="card-body">
+                {% if alert.conditions.all %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Indicador</th>
+                                <th>Operador</th>
+                                <th>Valor Umbral</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for condition in alert.conditions.all %}
+                            <tr>
+                                <td>{{ condition.indicator.name }}</td>
+                                <td>{{ condition.operator }}</td>
+                                <td>{{ condition.threshold_value }}</td>
+                                <td>
+                                    <a href="{% url 'alerts:alert_remove_condition' alert.id condition.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta condición?')">Eliminar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay condiciones configuradas para esta alerta.</p>
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <h6>Agregar condición</h6>
+                <form method="post" action="{% url 'alerts:alert_add_condition' alert.id %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <select class="form-select" name="condition_id" required>
+                                <option value="">Seleccionar condición...</option>
+                                {% for condition in conditions %}
+                                <option value="{{ condition.id }}">{{ condition }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="submit" class="btn btn-primary">Agregar</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Historial de Disparos</h5>
+            </div>
+            <div class="card-body">
+                {% if alert.triggers.all %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Recomendación IA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trigger in alert.triggers.all %}
+                            <tr>
+                                <td>{{ trigger.trigger_datetime|date:"d/m/Y H:i:s" }}</td>
+                                <td>{{ trigger.ai_recommendation|default:"Sin recomendación" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay disparos registrados para esta alerta.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

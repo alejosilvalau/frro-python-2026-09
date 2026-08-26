@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Alertas - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Mis Alertas</h2>
+        <a href="{% url 'alerts:alert_create' %}" class="btn btn-primary">Nueva Alerta</a>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if alerts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Acción</th>
+                                <th>Estado</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                            <tr>
+                                <td>{{ alert.name }}</td>
+                                <td>{{ alert.stock.ticker }}</td>
+                                <td>
+                                    {% if alert.is_active %}
+                                    <span class="badge bg-success">Activa</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactiva</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ alert.created_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'alerts:alert_detail' alert.id %}" class="btn btn-info btn-sm">Ver</a>
+                                    <a href="{% url 'alerts:alert_update' alert.id %}" class="btn btn-warning btn-sm">Editar</a>
+                                    <a href="{% url 'alerts:alert_delete' alert.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No tenés alertas configuradas todavía.</p>
+                    <a href="{% url 'alerts:alert_create' %}" class="btn btn-primary">Crear primera alerta</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

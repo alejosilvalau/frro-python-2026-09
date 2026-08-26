@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Indicadores Técnicos - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Indicadores Técnicos</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if indicators %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Período</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for indicator in indicators %}
+                            <tr>
+                                <td>{{ indicator.name }}</td>
+                                <td>{{ indicator.description|default:"-" }}</td>
+                                <td>{{ indicator.period }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay indicadores configurados.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

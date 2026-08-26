@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Condiciones de Alerta - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Condiciones de Alerta</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if conditions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Indicador</th>
+                                <th>Operador</th>
+                                <th>Valor Umbral</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for condition in conditions %}
+                            <tr>
+                                <td>{{ condition.indicator.name }}</td>
+                                <td>{{ condition.operator }}</td>
+                                <td>{{ condition.threshold_value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay condiciones configuradas.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
