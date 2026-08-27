@@ -99,6 +99,8 @@ def position_create(request):
 def position_update(request, position_id):
     portfolio_manager = PortfolioManager()
     position = portfolio_manager.get_position(position_id, request.user.id)
+    stocks = StockManager().get_all()
+    brokers = BrokerManager().get_all()
 
     if request.method == 'POST':
         amount = int(request.POST.get('amount', 0))
@@ -111,10 +113,16 @@ def position_update(request, position_id):
         except ValueError as e:
             return render(request, 'portfolio/position_form.html', {
                 'position': position,
+                'stocks': stocks,
+                'brokers': brokers,
                 'error': str(e)
             })
 
-    return render(request, 'portfolio/position_form.html', {'position': position})
+    return render(request, 'portfolio/position_form.html', {
+        'position': position,
+        'stocks': stocks,
+        'brokers': brokers,
+    })
 
 
 @login_required
