@@ -66,6 +66,23 @@ def get_stock_price_from_iol(ticker, mercado='bCBA'):
     return resp.json().get('ultimoPrecio')
 
 
+def get_sp500_return(start_date, end_date):
+    import yfinance as yf
+    hist = yf.Ticker('^GSPC').history(
+        start=start_date.strftime('%Y-%m-%d'),
+        end=end_date.strftime('%Y-%m-%d'),
+        auto_adjust=True,
+    )
+    if len(hist) >= 2:
+        return float(hist['Close'].iloc[-1] / hist['Close'].iloc[0] - 1) * 100
+    return None
+
+
+def get_historical_prices(ticker, period='6mo'):
+    import yfinance as yf
+    return yf.Ticker(ticker).history(period=period, auto_adjust=True)
+
+
 def get_positions_by_user(user_id):
     return Position.objects.filter(user_id=user_id)
 

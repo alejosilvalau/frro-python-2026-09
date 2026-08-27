@@ -1,11 +1,13 @@
 from decimal import Decimal
 from datetime import datetime, timedelta
 import requests
+import math
+
 from .data_access import (
     get_positions_by_user, get_position_by_id, create_position,
     update_position, delete_position, get_orders_by_position,
     get_order_by_id, create_order, delete_order,
-    get_stock_price_from_iol,
+    get_stock_price_from_iol, get_sp500_return, get_historical_prices,
 )
 
 
@@ -36,7 +38,10 @@ class ExternalAPIs:
     @staticmethod
     def get_sp500_performance(start_date, end_date):
         try:
-            return Decimal('10.5')
+            result = get_sp500_return(start_date, end_date)
+            if result is not None:
+                return Decimal(str(round(result, 4)))
+            return Decimal('0')
         except Exception:
             return Decimal('0')
 
@@ -185,18 +190,50 @@ class PortfolioManager:
         }
 
     def get_technical_indicators(self, position):
-        price = Decimal(str(position.stock_price_usd))
-        return {
-            'rsi': Decimal('65.5'),
-            'macd': Decimal('2.35'),
-            'macd_signal': Decimal('1.89'),
-            'macd_histogram': Decimal('0.46'),
-            'sma_20': price * Decimal('0.98'),
-            'sma_50': price * Decimal('0.95'),
-            'ema_30': price * Decimal('0.97'),
-            'volume_relative': Decimal('1.2'),
-            'volatility': Decimal('18.5')
-        }
+        try:
+            import pandas_ta as ta
+            df = get_historical_prices(position.stock.ticker)
+            if df is None or len(df) < 30:
+                raise ValueError("datos insuficientes")
+
+            rsi_s = ta.rsi(df['Close'], length=14)
+            macd_df = ta.macd(df['Close'])
+            sma_20 = ta.sma(df['Close'], length=20)
+            sma_50 = ta.sma(df['Close'], length=50)
+            ema_30 = ta.ema(df['Close'], length=30)
+
+            avg_vol = float(df['Volume'].mean())
+            vol_relative = float(df['Volume'].iloc[-1]) / avg_vol if avg_vol > 0 else 1.0
+            volatility = float(df['Close'].pct_change().dropna().std()) * (252 ** 0.5) * 100
+
+            def d(val):
+                f = float(val)
+                return Decimal(str(round(f, 4))) if not (math.isnan(f) or math.isinf(f)) else Decimal('0')
+
+            return {
+                'rsi': d(rsi_s.iloc[-1]),
+                'macd': d(macd_df['MACD_12_26_9'].iloc[-1]),
+                'macd_signal': d(macd_df['MACDs_12_26_9'].iloc[-1]),
+                'macd_histogram': d(macd_df['MACDh_12_26_9'].iloc[-1]),
+                'sma_20': d(sma_20.iloc[-1]),
+                'sma_50': d(sma_50.iloc[-1]),
+                'ema_30': d(ema_30.iloc[-1]),
+                'volume_relative': Decimal(str(round(vol_relative, 4))),
+                'volatility': Decimal(str(round(volatility, 4))),
+            }
+        except Exception:
+            price = Decimal(str(position.stock_price_local))
+            return {
+                'rsi': Decimal('0'),
+                'macd': Decimal('0'),
+                'macd_signal': Decimal('0'),
+                'macd_histogram': Decimal('0'),
+                'sma_20': price,
+                'sma_50': price,
+                'ema_30': price,
+                'volume_relative': Decimal('1'),
+                'volatility': Decimal('0'),
+            }
 
 
 class OrderManager:
