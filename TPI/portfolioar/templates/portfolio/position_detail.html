@@ -16,6 +16,40 @@
     </div>
 </div>
 
+{% if position.stock.tipo == 'accion' or position.stock.tipo == 'cedear' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Precio Histórico</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="tradingview-widget-container">
+                    <div id="tv_chart_{{ position.id }}"></div>
+                    <script src="https://s3.tradingview.com/tv.js"></script>
+                    <script>
+                        new TradingView.widget({
+                            "width": "100%",
+                            "height": 450,
+                            "symbol": "{% if position.stock.tipo == 'accion' %}BYMA:{% endif %}{{ position.stock.ticker }}",
+                            "interval": "D",
+                            "timezone": "America/Argentina/Buenos_Aires",
+                            "theme": "light",
+                            "style": "1",
+                            "locale": "es",
+                            "enable_publishing": false,
+                            "allow_symbol_change": false,
+                            "save_image": false,
+                            "container_id": "tv_chart_{{ position.id }}"
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card">
