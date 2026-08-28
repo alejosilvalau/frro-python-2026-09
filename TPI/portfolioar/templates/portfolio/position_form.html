@@ -100,7 +100,7 @@ document.getElementById('stock_id').addEventListener('change', function () {
                 return;
             }
             priceLocalInput.value = data.price_ars;
-            priceUsdInput.value = data.price_usd;
+            priceUsdInput.value = data.price_usd !== null ? data.price_usd.toFixed(2) : '';
             if (badge) badge.textContent = `CCL: $${data.ccl.toLocaleString('es-AR')}`;
         })
         .catch(() => {
