@@ -1,7 +1,8 @@
 from decimal import Decimal
-from datetime import datetime, timedelta
-import requests
+from datetime import timedelta
 import math
+import requests
+from django.utils import timezone
 
 from .data_access import (
     get_positions_by_user, get_position_by_id, create_position,
@@ -96,7 +97,7 @@ class PortfolioManager:
         profit_loss = current_value - invested_amount
         profit_loss_percentage = (profit_loss / invested_amount * 100) if invested_amount > 0 else Decimal('0')
 
-        days_held = (datetime.now() - position.purchased_at).days if position.purchased_at else 0
+        days_held = (timezone.now() - position.purchased_at).days if position.purchased_at else 0
         years_held = Decimal(str(days_held)) / Decimal('365')
         annualized_return = ((profit_loss_percentage / years_held) if years_held > 0 else Decimal('0'))
 
@@ -115,7 +116,7 @@ class PortfolioManager:
 
         sp500_return = self.external_apis.get_sp500_performance(
             position.purchased_at.date(),
-            datetime.now().date()
+            timezone.now().date()
         )
 
         performance = self.calculate_position_performance(position)
@@ -132,7 +133,7 @@ class PortfolioManager:
 
         inflation = self.external_apis.get_indec_inflation(
             position.purchased_at.date(),
-            datetime.now().date()
+            timezone.now().date()
         )
 
         performance = self.calculate_position_performance(position)
@@ -158,14 +159,14 @@ class PortfolioManager:
         profit_loss_percentage = (profit_loss / total_invested * 100) if total_invested > 0 else Decimal('0')
 
         total_sp500_return = self.external_apis.get_sp500_performance(
-            datetime.now().date() - timedelta(days=365),
-            datetime.now().date()
+            timezone.now().date() - timedelta(days=365),
+            timezone.now().date()
         )
         alpha = profit_loss_percentage - total_sp500_return
 
         total_inflation = self.external_apis.get_indec_inflation(
-            datetime.now().date() - timedelta(days=365),
-            datetime.now().date()
+            timezone.now().date() - timedelta(days=365),
+            timezone.now().date()
         )
         real_return = profit_loss_percentage - total_inflation
 
