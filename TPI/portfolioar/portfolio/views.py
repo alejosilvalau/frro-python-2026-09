@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
@@ -39,8 +40,9 @@ def dashboard(request):
 def position_list(request):
     portfolio_manager = PortfolioManager()
     positions = portfolio_manager.get_user_positions(request.user.id)
-
-    return render(request, 'portfolio/position_list.html', {'positions': positions})
+    paginator = Paginator(positions, 10)
+    page = paginator.get_page(request.GET.get('page'))
+    return render(request, 'portfolio/position_list.html', {'page': page})
 
 
 @login_required
