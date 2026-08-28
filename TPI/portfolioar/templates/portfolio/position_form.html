@@ -18,13 +18,18 @@
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="stock_id" class="form-label">Acción</label>
+                            <label for="stock_id" class="form-label">Instrumento</label>
                             <select class="form-select" id="stock_id" name="stock_id" required>
-                                <option value="">Seleccionar acción...</option>
-                                {% for stock in stocks %}
-                                <option value="{{ stock.id }}" {% if position and position.stock.id == stock.id %}selected{% endif %}>
-                                    {{ stock.ticker }} - {{ stock.company_name }}
-                                </option>
+                                <option value="">Seleccionar instrumento...</option>
+                                {% regroup stocks by get_tipo_display as stocks_by_tipo %}
+                                {% for grupo in stocks_by_tipo %}
+                                <optgroup label="{{ grupo.grouper }}">
+                                    {% for stock in grupo.list %}
+                                    <option value="{{ stock.id }}" {% if position and position.stock.id == stock.id %}selected{% endif %}>
+                                        {{ stock.ticker }} - {{ stock.company_name }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
                                 {% endfor %}
                             </select>
                         </div>

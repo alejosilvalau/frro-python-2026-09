@@ -1,0 +1,44 @@
+[
+  {"model": "core.sector", "pk": 1, "fields": {"name": "Tecnología", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 2, "fields": {"name": "Energía", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 3, "fields": {"name": "Finanzas", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 4, "fields": {"name": "Materiales", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 5, "fields": {"name": "Consumo", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 6, "fields": {"name": "Salud", "description": "", "primary": false}},
+  {"model": "core.sector", "pk": 7, "fields": {"name": "Soberano", "description": "Bonos y letras del estado argentino", "primary": false}},
+
+  {"model": "core.broker", "pk": 1, "fields": {"name": "InvertirOnline (IOL)", "link": "https://www.invertironline.com"}},
+  {"model": "core.broker", "pk": 2, "fields": {"name": "Balanz", "link": "https://balanz.com"}},
+  {"model": "core.broker", "pk": 3, "fields": {"name": "Portfolio Personal (PPI)", "link": "https://www.portfoliopersonal.com"}},
+  {"model": "core.broker", "pk": 4, "fields": {"name": "Primary", "link": "https://www.primary.com.ar"}},
+
+  {"model": "core.stock", "pk": 1,  "fields": {"ticker": "AAPL",  "company_name": "Apple Inc.",               "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 2,  "fields": {"ticker": "MSFT",  "company_name": "Microsoft Corporation",    "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 3,  "fields": {"ticker": "GOOGL", "company_name": "Alphabet Inc.",            "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 4,  "fields": {"ticker": "AMZN",  "company_name": "Amazon.com Inc.",          "tipo": "cedear", "sector": 5}},
+  {"model": "core.stock", "pk": 5,  "fields": {"ticker": "TSLA",  "company_name": "Tesla Inc.",               "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 6,  "fields": {"ticker": "META",  "company_name": "Meta Platforms Inc.",      "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 7,  "fields": {"ticker": "NVDA",  "company_name": "NVIDIA Corporation",       "tipo": "cedear", "sector": 1}},
+  {"model": "core.stock", "pk": 8,  "fields": {"ticker": "JPM",   "company_name": "JPMorgan Chase & Co.",     "tipo": "cedear", "sector": 3}},
+  {"model": "core.stock", "pk": 9,  "fields": {"ticker": "XOM",   "company_name": "Exxon Mobil Corporation",  "tipo": "cedear", "sector": 2}},
+  {"model": "core.stock", "pk": 10, "fields": {"ticker": "WMT",   "company_name": "Walmart Inc.",             "tipo": "cedear", "sector": 5}},
+
+  {"model": "core.stock", "pk": 11, "fields": {"ticker": "GGAL",  "company_name": "Grupo Financiero Galicia", "tipo": "accion", "sector": 3}},
+  {"model": "core.stock", "pk": 12, "fields": {"ticker": "YPF",   "company_name": "YPF S.A.",                 "tipo": "accion", "sector": 2}},
+  {"model": "core.stock", "pk": 13, "fields": {"ticker": "BMA",   "company_name": "Banco Macro S.A.",         "tipo": "accion", "sector": 3}},
+  {"model": "core.stock", "pk": 14, "fields": {"ticker": "PAMP",  "company_name": "Pampa Energía S.A.",       "tipo": "accion", "sector": 2}},
+  {"model": "core.stock", "pk": 15, "fields": {"ticker": "TXAR",  "company_name": "Ternium Argentina S.A.",   "tipo": "accion", "sector": 4}},
+  {"model": "core.stock", "pk": 16, "fields": {"ticker": "BBAR",  "company_name": "Banco BBVA Argentina S.A.","tipo": "accion", "sector": 3}},
+  {"model": "core.stock", "pk": 17, "fields": {"ticker": "TECO2", "company_name": "Telecom Argentina S.A.",   "tipo": "accion", "sector": 1}},
+  {"model": "core.stock", "pk": 18, "fields": {"ticker": "ALUA",  "company_name": "Aluar Aluminio S.A.",      "tipo": "accion", "sector": 4}},
+
+  {"model": "core.stock", "pk": 19, "fields": {"ticker": "AL30",  "company_name": "Bono Soberano AL30 USD",   "tipo": "bono",   "sector": 7}},
+  {"model": "core.stock", "pk": 20, "fields": {"ticker": "GD30",  "company_name": "Bono Soberano GD30 USD",   "tipo": "bono",   "sector": 7}},
+  {"model": "core.stock", "pk": 21, "fields": {"ticker": "AL35",  "company_name": "Bono Soberano AL35 USD",   "tipo": "bono",   "sector": 7}},
+  {"model": "core.stock", "pk": 22, "fields": {"ticker": "GD35",  "company_name": "Bono Soberano GD35 USD",   "tipo": "bono",   "sector": 7}},
+  {"model": "core.stock", "pk": 23, "fields": {"ticker": "AY24",  "company_name": "Bono Soberano AY24 USD",   "tipo": "bono",   "sector": 7}},
+
+  {"model": "core.stock", "pk": 24, "fields": {"ticker": "S31E5", "company_name": "Letra del Tesoro S31E5",   "tipo": "letra",  "sector": 7}},
+  {"model": "core.stock", "pk": 25, "fields": {"ticker": "S28F5", "company_name": "Letra del Tesoro S28F5",   "tipo": "letra",  "sector": 7}},
+  {"model": "core.stock", "pk": 26, "fields": {"ticker": "S30J5", "company_name": "Letra del Tesoro S30J5",   "tipo": "letra",  "sector": 7}}
+]

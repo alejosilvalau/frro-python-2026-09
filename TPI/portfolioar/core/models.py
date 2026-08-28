@@ -62,14 +62,23 @@ class Broker(models.Model):
 
 
 class Stock(models.Model):
+    TIPO_CHOICES = [
+        ('accion', 'Acción'),
+        ('cedear', 'CEDEAR'),
+        ('bono', 'Bono'),
+        ('letra', 'Letra'),
+    ]
+
     ticker = models.CharField(max_length=20, unique=True)
     company_name = models.CharField(max_length=200)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='accion')
     sector = models.ForeignKey(Sector, on_delete=models.SET_NULL, null=True, blank=True, related_name='stocks')
 
     class Meta:
         db_table = 'stock'
-        verbose_name = 'acción'
-        verbose_name_plural = 'acciones'
+        verbose_name = 'instrumento'
+        verbose_name_plural = 'instrumentos'
+        ordering = ['tipo', 'ticker']
 
     def __str__(self):
         return f"{self.ticker} - {self.company_name}"
