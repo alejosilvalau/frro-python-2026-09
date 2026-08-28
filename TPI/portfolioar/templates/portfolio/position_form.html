@@ -45,6 +45,11 @@
                             </select>
                         </div>
                     </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Seleccioná un instrumento para cargar el precio actual automáticamente. Podés editarlo si compraste a un precio distinto.</small>
+                        <span id="ccl-badge" class="ms-2 badge bg-secondary"></span>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="amount" class="form-label">Cantidad</label>
@@ -73,4 +78,35 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('stock_id').addEventListener('change', function () {
+    const stockId = this.value;
+    if (!stockId) return;
+
+    const priceLocalInput = document.getElementById('price_local');
+    const priceUsdInput = document.getElementById('price_usd');
+    const badge = document.getElementById('ccl-badge');
+
+    priceLocalInput.placeholder = 'Cargando...';
+    priceUsdInput.placeholder = 'Cargando...';
+
+    fetch(`{% url 'portfolio:api_instrument_price' %}?stock_id=${stockId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                priceLocalInput.placeholder = 'No disponible';
+                priceUsdInput.placeholder = 'No disponible';
+                return;
+            }
+            priceLocalInput.value = data.price_ars;
+            priceUsdInput.value = data.price_usd;
+            if (badge) badge.textContent = `CCL: $${data.ccl.toLocaleString('es-AR')}`;
+        })
+        .catch(() => {
+            priceLocalInput.placeholder = 'Error al obtener precio';
+            priceUsdInput.placeholder = 'Error al obtener precio';
+        });
+});
+</script>
 {% endblock %}

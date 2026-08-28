@@ -1,7 +1,10 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .business import PortfolioManager, OrderManager
+from .data_access import get_stock_price_from_iol, get_ccl_rate
 from core.business import StockManager, BrokerManager
+from core.data_access import get_stock_by_id
 
 
 @login_required
@@ -164,3 +167,23 @@ def order_delete(request, order_id):
     order_manager.get_order(order_id, request.user.id)
     order_manager.remove_order(order_id)
     return redirect('portfolio:position_list')
+
+
+@login_required
+def api_instrument_price(request):
+    stock_id = request.GET.get('stock_id')
+    if not stock_id:
+        return JsonResponse({'error': 'stock_id requerido'}, status=400)
+    try:
+        stock = get_stock_by_id(stock_id)
+        price_ars = get_stock_price_from_iol(stock.ticker)
+        ccl = get_ccl_rate()
+        price_usd = round(price_ars / ccl, 4) if ccl else None
+        return JsonResponse({
+            'ticker': stock.ticker,
+            'price_ars': price_ars,
+            'price_usd': price_usd,
+            'ccl': ccl,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=502)

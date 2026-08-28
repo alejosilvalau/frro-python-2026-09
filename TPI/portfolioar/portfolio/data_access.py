@@ -66,6 +66,12 @@ def get_stock_price_from_iol(ticker, mercado='bCBA'):
     return resp.json().get('ultimoPrecio')
 
 
+def get_ccl_rate():
+    resp = requests.get('https://dolarapi.com/v1/dolares/contadoconliqui', timeout=8)
+    resp.raise_for_status()
+    return float(resp.json()['venta'])
+
+
 def get_sp500_return(start_date, end_date):
     import yfinance as yf
     hist = yf.Ticker('^GSPC').history(
