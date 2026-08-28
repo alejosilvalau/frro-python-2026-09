@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if cash %}Editar Liquidez{% else %}Nueva Liquidez{% endif %} - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{% if cash %}Editar entrada de liquidez{% else %}Nueva entrada de liquidez{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if not cash %}
+                    <div class="mb-3">
+                        <label class="form-label">Moneda</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="currency" id="currency_ars" value="ARS" checked>
+                                <label class="form-check-label" for="currency_ars">Pesos (ARS)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="currency" id="currency_usd" value="USD">
+                                <label class="form-check-label" for="currency_usd">Dólares (USD)</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label class="form-label">Moneda</label>
+                        <p class="form-control-plaintext fw-bold">{{ cash.get_currency_display }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Monto</label>
+                        <input type="number" class="form-control" id="amount" name="amount"
+                               value="{{ cash.amount|default:'' }}" step="0.01" min="0.01" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descripción <small class="text-muted">(opcional)</small></label>
+                        <input type="text" class="form-control" id="description" name="description"
+                               value="{{ cash.description|default:'' }}" placeholder="ej: Saldo IOL, Dólares MEP">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        {% if cash %}Guardar cambios{% else %}Agregar{% endif %}
+                    </button>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <a href="{% url 'portfolio:cash_list' %}">Volver a liquidez</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

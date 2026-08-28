@@ -36,3 +36,25 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Orden {self.id} - {self.position.stock.ticker}"
+
+
+class CashPosition(models.Model):
+    CURRENCY_CHOICES = [
+        ('ARS', 'Pesos (ARS)'),
+        ('USD', 'Dólares (USD)'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cash_positions')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    description = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'cash_position'
+        verbose_name = 'liquidez'
+        verbose_name_plural = 'liquidez'
+        ordering = ['currency', '-created_at']
+
+    def __str__(self):
+        return f"{self.currency} {self.amount} - {self.description or 'Sin descripción'}"

@@ -47,6 +47,34 @@
 
 <div class="row mb-4">
     <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Liquidez ARS</h6>
+                <h4 class="card-text">${{ cash_totals.total_ars|floatformat:2 }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Liquidez USD</h6>
+                <h4 class="card-text">U$D {{ cash_totals.total_usd|floatformat:2 }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-secondary">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Patrimonio Total (ARS)</h6>
+                <h4 class="card-text">${{ summary.total_current_value|add:cash_totals.total_ars_equivalent|floatformat:2 }}</h4>
+                <small class="text-muted">Inversiones + Liquidez</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Comparación S&P 500</h5>

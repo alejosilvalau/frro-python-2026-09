@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Liquidez - PortfolioAR{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Liquidez</h2>
+        <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary">Nueva entrada</a>
+    </div>
+</div>
+
+<div class="row mt-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Total en Pesos (ARS)</h5>
+                <h3 class="card-text">${{ totals.total_ars|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total en Dólares (USD)</h5>
+                <h3 class="card-text">U$D {{ totals.total_usd|floatformat:2 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Equivalente en ARS</h5>
+                <h3 class="card-text">${{ totals.total_ars_equivalent|floatformat:2 }}</h3>
+                <small>CCL: ${{ totals.ccl|floatformat:2 }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-0">
+                {% if cash_positions %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Moneda</th>
+                                <th class="text-end">Monto</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cash in cash_positions %}
+                            <tr>
+                                <td>
+                                    {% if cash.currency == 'USD' %}
+                                    <span class="badge bg-primary">USD</span>
+                                    {% else %}
+                                    <span class="badge bg-success">ARS</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if cash.currency == 'USD' %}U$D{% else %}${% endif %}
+                                    {{ cash.amount|floatformat:2 }}
+                                </td>
+                                <td>{{ cash.description|default:"-" }}</td>
+                                <td>{{ cash.created_at|date:"d/m/Y" }}</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'portfolio:cash_update' cash.id %}" class="btn btn-outline-warning">Editar</a>
+                                        <a href="{% url 'portfolio:cash_delete' cash.id %}" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar esta entrada?')">Eliminar</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted">No tenés liquidez registrada todavía.</p>
+                    <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary">Agregar liquidez</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .business import PortfolioManager, OrderManager
+from .business import PortfolioManager, OrderManager, CashManager
 from .data_access import get_stock_price_from_iol, get_ccl_rate
 from core.business import StockManager, BrokerManager
 from core.data_access import get_stock_by_id
@@ -11,7 +11,9 @@ from core.data_access import get_stock_by_id
 @login_required
 def dashboard(request):
     portfolio_manager = PortfolioManager()
+    cash_manager = CashManager()
     summary = portfolio_manager.calculate_portfolio_summary(request.user.id)
+    cash_totals = cash_manager.get_totals(request.user.id)
     positions = portfolio_manager.get_user_positions(request.user.id)
 
     positions_with_performance = []
@@ -31,8 +33,9 @@ def dashboard(request):
 
     return render(request, 'portfolio/dashboard.html', {
         'summary': summary,
+        'cash_totals': cash_totals,
         'positions': positions,
-        'positions_with_performance': positions_with_performance
+        'positions_with_performance': positions_with_performance,
     })
 
 
@@ -169,6 +172,55 @@ def order_delete(request, order_id):
     order_manager.get_order(order_id, request.user.id)
     order_manager.remove_order(order_id)
     return redirect('portfolio:position_list')
+
+
+@login_required
+def cash_list(request):
+    cash_manager = CashManager()
+    cash_positions = cash_manager.get_user_cash(request.user.id)
+    totals = cash_manager.get_totals(request.user.id)
+    return render(request, 'portfolio/cash_list.html', {
+        'cash_positions': cash_positions,
+        'totals': totals,
+    })
+
+
+@login_required
+def cash_create(request):
+    if request.method == 'POST':
+        currency = request.POST.get('currency')
+        description = request.POST.get('description', '')
+        try:
+            amount = float(request.POST.get('amount', 0))
+            cash_manager = CashManager()
+            cash_manager.add_cash(request.user.id, currency, amount, description)
+            return redirect('portfolio:cash_list')
+        except ValueError as e:
+            return render(request, 'portfolio/cash_form.html', {'error': str(e)})
+    return render(request, 'portfolio/cash_form.html')
+
+
+@login_required
+def cash_update(request, cash_id):
+    cash_manager = CashManager()
+    cash = cash_manager.get_cash(cash_id, request.user.id)
+    if request.method == 'POST':
+        description = request.POST.get('description', '')
+        try:
+            amount = float(request.POST.get('amount', 0))
+            cash_manager.update_cash(cash_id, amount, description)
+            return redirect('portfolio:cash_list')
+        except ValueError as e:
+            return render(request, 'portfolio/cash_form.html', {'cash': cash, 'error': str(e)})
+    return render(request, 'portfolio/cash_form.html', {'cash': cash})
+
+
+@login_required
+def cash_delete(request, cash_id):
+    cash_manager = CashManager()
+    cash_manager.get_cash(cash_id, request.user.id)
+    cash_manager.remove_cash(cash_id)
+    return redirect('portfolio:cash_list')
 
 
 @login_required

@@ -9,6 +9,9 @@ from .data_access import (
     update_position, delete_position, get_orders_by_position,
     get_order_by_id, create_order, delete_order,
     get_stock_price_from_iol, get_sp500_return, get_historical_prices,
+    get_cash_positions_by_user, get_cash_position_by_id,
+    create_cash_position, update_cash_position, delete_cash_position,
+    get_ccl_rate,
 )
 
 
@@ -235,6 +238,46 @@ class PortfolioManager:
                 'volume_relative': Decimal('1'),
                 'volatility': Decimal('0'),
             }
+
+
+class CashManager:
+    def get_user_cash(self, user_id):
+        return get_cash_positions_by_user(user_id)
+
+    def get_cash(self, cash_id, user_id=None):
+        return get_cash_position_by_id(cash_id, user_id)
+
+    def add_cash(self, user_id, currency, amount, description=''):
+        if amount <= 0:
+            raise ValueError("El monto debe ser mayor a 0")
+        if currency not in ('ARS', 'USD'):
+            raise ValueError("La moneda debe ser ARS o USD")
+        return create_cash_position(user_id, currency, amount, description)
+
+    def update_cash(self, cash_id, amount, description=''):
+        if amount <= 0:
+            raise ValueError("El monto debe ser mayor a 0")
+        return update_cash_position(cash_id, amount, description)
+
+    def remove_cash(self, cash_id):
+        delete_cash_position(cash_id)
+
+    def get_totals(self, user_id):
+        positions = get_cash_positions_by_user(user_id)
+        total_ars = sum(c.amount for c in positions if c.currency == 'ARS')
+        total_usd = sum(c.amount for c in positions if c.currency == 'USD')
+        try:
+            ccl = Decimal(str(get_ccl_rate()))
+            total_ars_equivalent = total_ars + total_usd * ccl
+        except Exception:
+            ccl = Decimal('0')
+            total_ars_equivalent = total_ars
+        return {
+            'total_ars': total_ars,
+            'total_usd': total_usd,
+            'ccl': ccl,
+            'total_ars_equivalent': total_ars_equivalent,
+        }
 
 
 class OrderManager:

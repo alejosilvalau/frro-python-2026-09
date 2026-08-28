@@ -4,7 +4,7 @@ import time
 import requests
 from django.shortcuts import get_object_or_404
 
-from .models import Position, Order
+from .models import Position, Order, CashPosition
 from core.data_access import get_user_by_id, get_stock_by_id, get_broker_by_id
 
 _IOL_BASE = 'https://api.invertironline.com'
@@ -160,3 +160,34 @@ def get_order_by_id(order_id, user_id=None):
 
 def delete_order(order_id):
     Order.objects.filter(id=order_id).delete()
+
+
+def get_cash_positions_by_user(user_id):
+    return CashPosition.objects.filter(user_id=user_id)
+
+
+def get_cash_position_by_id(cash_id, user_id=None):
+    from django.shortcuts import get_object_or_404
+    if user_id is not None:
+        return get_object_or_404(CashPosition, id=cash_id, user_id=user_id)
+    return get_object_or_404(CashPosition, id=cash_id)
+
+
+def create_cash_position(user_id, currency, amount, description):
+    from core.data_access import get_user_by_id
+    user = get_user_by_id(user_id)
+    cash = CashPosition(user=user, currency=currency, amount=amount, description=description)
+    cash.save()
+    return cash
+
+
+def update_cash_position(cash_id, amount, description):
+    cash = CashPosition.objects.get(id=cash_id)
+    cash.amount = amount
+    cash.description = description
+    cash.save()
+    return cash
+
+
+def delete_cash_position(cash_id):
+    CashPosition.objects.filter(id=cash_id).delete()
