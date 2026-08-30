@@ -186,4 +186,4 @@ División vertical por casos de uso:
 
 ## Link al Código Fuente
 
-Repositorio: <https://github.com/andresguerrero98/frro-python-2026-09> — rama `tpi`
+Repositorio: https://github.com/alejosilvalau/frro-python-2026-09/tree/tpi
