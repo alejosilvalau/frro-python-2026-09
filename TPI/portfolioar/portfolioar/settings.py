@@ -75,8 +75,9 @@ else:
             'HOST': os.environ.get('DB_HOST', 'localhost'),
             'PORT': os.environ.get('DB_PORT', '1433'),
             'OPTIONS': {
-                'driver': 'ODBC Driver 17 for SQL Server',
+                'driver': 'ODBC Driver 18 for SQL Server',
                 'unicode_results': True,
+                'TrustServerCertificate': 'Yes',
             },
         },
     }
