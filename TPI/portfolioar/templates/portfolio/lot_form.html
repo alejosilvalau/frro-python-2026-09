@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}Nueva Posición - PortfolioAR{% endblock %}
+{% block title %}Nueva Compra - PortfolioAR{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0">Nueva Posición</h4>
+                <h4 class="mb-0">Nueva Compra &mdash; {{ position.stock.ticker }}</h4>
             </div>
             <div class="card-body">
                 {% if error %}
@@ -36,40 +36,6 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="stock_id" class="form-label">Instrumento</label>
-                            <select class="form-select" id="stock_id" name="stock_id" required>
-                                <option value="">Seleccionar instrumento...</option>
-                                {% regroup stocks by get_tipo_display as stocks_by_tipo %}
-                                {% for grupo in stocks_by_tipo %}
-                                <optgroup label="{{ grupo.grouper }}">
-                                    {% for stock in grupo.list %}
-                                    <option value="{{ stock.id }}">
-                                        {{ stock.ticker }} - {{ stock.company_name }}
-                                    </option>
-                                    {% endfor %}
-                                </optgroup>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="broker_id" class="form-label">Broker</label>
-                            <select class="form-select" id="broker_id" name="broker_id" required>
-                                <option value="">Seleccionar broker...</option>
-                                {% for broker in brokers %}
-                                <option value="{{ broker.id }}">
-                                    {{ broker.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-2">
-                        <small class="text-muted">Seleccioná un instrumento para cargar el precio actual automáticamente. Podés editarlo si compraste a un precio distinto.</small>
-                        <span id="ccl-badge" class="ms-2 badge bg-secondary"></span>
-                    </div>
-
-                    <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="amount" class="form-label">Cantidad</label>
                             <input type="number" class="form-control" id="amount" name="amount" min="1" required>
@@ -87,15 +53,21 @@
                         Costo total: <strong id="cost-value">-</strong>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="purchased_at" class="form-label">Fecha de compra</label>
-                        <input type="datetime-local" class="form-control" id="purchased_at" name="purchased_at" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="purchased_at" class="form-label">Fecha de compra</label>
+                            <input type="datetime-local" class="form-control" id="purchased_at" name="purchased_at" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fees" class="form-label">Comisiones <small class="text-muted">(informativo, no afecta el P&L)</small></label>
+                            <input type="number" class="form-control" id="fees" name="fees" step="0.01" min="0" value="0">
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Crear posición</button>
+                    <button type="submit" class="btn btn-primary w-100">Registrar compra</button>
                 </form>
 
                 <div class="mt-3 text-center">
-                    <a href="{% url 'portfolio:position_list' %}">Volver a la lista</a>
+                    <a href="{% url 'portfolio:position_detail' position.id %}">Volver a la posición</a>
                 </div>
             </div>
         </div>
@@ -108,11 +80,9 @@ const availableUSD = parseFloat('{{ available_usd|default:"0" }}') || 0;
 
 function updateCostDisplay() {
     const costDisplay = document.getElementById('cost-display');
-    if (!costDisplay) return;
-
     const amountEl = document.getElementById('amount');
     const currencyEl = document.querySelector('input[name="purchase_currency"]:checked');
-    if (!amountEl || !currencyEl) return;
+    if (!costDisplay || !amountEl || !currencyEl) return;
 
     const qty = parseFloat(amountEl.value) || 0;
     const currency = currencyEl.value;
@@ -136,36 +106,6 @@ function updateCostDisplay() {
         costDisplay.classList.add('d-none');
     }
 }
-
-document.getElementById('stock_id').addEventListener('change', function () {
-    const stockId = this.value;
-    if (!stockId) return;
-
-    const priceLocalInput = document.getElementById('price_local');
-    const priceUsdInput = document.getElementById('price_usd');
-    const badge = document.getElementById('ccl-badge');
-
-    priceLocalInput.placeholder = 'Cargando...';
-    priceUsdInput.placeholder = 'Cargando...';
-
-    fetch(`{% url 'portfolio:api_instrument_price' %}?stock_id=${stockId}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) {
-                priceLocalInput.placeholder = 'No disponible';
-                priceUsdInput.placeholder = 'No disponible';
-                return;
-            }
-            priceLocalInput.value = data.price_ars;
-            priceUsdInput.value = data.price_usd !== null ? data.price_usd.toFixed(2) : '';
-            if (badge) badge.textContent = `CCL: $${data.ccl.toLocaleString('es-AR')}`;
-            updateCostDisplay();
-        })
-        .catch(() => {
-            priceLocalInput.placeholder = 'Error al obtener precio';
-            priceUsdInput.placeholder = 'Error al obtener precio';
-        });
-});
 
 document.getElementById('amount').addEventListener('input', updateCostDisplay);
 document.getElementById('price_local').addEventListener('input', updateCostDisplay);

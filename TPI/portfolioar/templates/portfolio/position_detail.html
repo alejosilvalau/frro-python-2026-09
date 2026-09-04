@@ -6,10 +6,27 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>{{ position.stock.ticker }} - {{ position.stock.company_name }}</h2>
-            <div>
-                <a href="{% url 'portfolio:position_update' position.id %}" class="btn btn-warning">Editar</a>
-                <a href="{% url 'portfolio:position_delete' position.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta posición?')">Eliminar</a>
+            <h2>
+                {{ position.stock.ticker }} - {{ position.stock.company_name }}
+                {% if position.status == 'open' %}
+                <span class="badge bg-success">Abierta</span>
+                {% else %}
+                <span class="badge bg-secondary">Cerrada</span>
+                {% endif %}
+            </h2>
+            <div class="btn-group">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Operar
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'portfolio:lot_create' position.id %}">Comprar</a></li>
+                        {% if performance.open_amount > 0 %}
+                        <li><a class="dropdown-item" href="{% url 'portfolio:sale_create' position.id %}">Vender</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <a href="{% url 'portfolio:position_delete' position.id %}" class="btn btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar esta posición?')">Eliminar</a>
                 <a href="{% url 'portfolio:position_list' %}" class="btn btn-secondary">Volver</a>
             </div>
         </div>
@@ -54,24 +71,24 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Cantidad</h5>
-                <h3 class="card-text">{{ position.amount }}</h3>
+                <h5 class="card-title">Cantidad Abierta</h5>
+                <h3 class="card-text">{{ performance.open_amount }}</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Precio Compra (Local)</h5>
-                <h3 class="card-text">${{ position.stock_price_local|floatformat:2 }}</h3>
+                <h5 class="card-title">Costo Promedio (Local)</h5>
+                <h3 class="card-text">${{ performance.avg_cost_local|floatformat:2 }}</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Precio Compra (USD)</h5>
-                <h3 class="card-text">${{ position.stock_price_usd|floatformat:2 }}</h3>
+                <h5 class="card-title">Costo Promedio (USD)</h5>
+                <h3 class="card-text">${{ performance.avg_cost_usd|floatformat:2 }}</h3>
             </div>
         </div>
     </div>
@@ -105,7 +122,7 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Ganancia/Pérdida (ARS)</h5>
+                <h5 class="card-title">P&amp;L No Realizado (ARS)</h5>
                 <h3 class="card-text {% if performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
                     ${{ performance.profit_loss|floatformat:2 }}
                     ({{ performance.profit_loss_percentage|floatformat:2 }}%)
@@ -116,10 +133,11 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Rendimiento Anualizado</h5>
-                <h3 class="card-text {% if performance.annualized_return >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ performance.annualized_return|floatformat:2 }}%
+                <h5 class="card-title">P&amp;L Realizado</h5>
+                <h3 class="card-text {% if performance.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ performance.realized_pnl_ars|floatformat:2 }}
                 </h3>
+                <small class="text-muted">U$D {{ performance.realized_pnl_usd|floatformat:2 }}</small>
             </div>
         </div>
     </div>
@@ -216,37 +234,44 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Órdenes</h5>
-                <a href="{% url 'portfolio:order_create' position.id %}" class="btn btn-primary btn-sm">Nueva Orden</a>
+            <div class="card-header">
+                <h5 class="mb-0">Lotes de Compra</h5>
             </div>
             <div class="card-body">
-                {% if orders %}
+                {% if lots_with_remaining %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>Cantidad</th>
-                                <th>Fecha</th>
-                                <th>Comisiones</th>
+                                <th>Disponible</th>
+                                <th>Moneda</th>
                                 <th>Precio (Local)</th>
                                 <th>Precio (USD)</th>
+                                <th>Comisiones</th>
+                                <th>Fecha</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for order in orders %}
+                            {% for lot, remaining in lots_with_remaining %}
                             <tr>
-                                <td>{{ order.amount }}</td>
-                                <td>{{ order.fulfill_datetime|date:"d/m/Y H:i" }}</td>
-                                <td>${{ order.total_fees|floatformat:2 }}</td>
-                                <td>${{ order.price_local|floatformat:2 }}</td>
-                                <td>${{ order.price_usd|floatformat:2 }}</td>
+                                <td>{{ lot.amount }}</td>
+                                <td>{{ remaining }}</td>
+                                <td>{{ lot.purchase_currency }}</td>
+                                <td>${{ lot.price_local|floatformat:2 }}</td>
+                                <td>${{ lot.price_usd|floatformat:2 }}</td>
+                                <td>${{ lot.fees|floatformat:2 }}</td>
+                                <td>{{ lot.purchased_at|date:"d/m/Y H:i" }}</td>
                                 <td>
-                                    <a href="{% url 'portfolio:order_delete' order.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta orden?')">Eliminar</a>
+                                    {% if remaining == lot.amount %}
+                                    <a href="{% url 'portfolio:lot_delete' lot.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este lote?')">Eliminar</a>
+                                    {% else %}
+                                    <span class="text-muted small">Vendido parcial/total</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -255,8 +280,53 @@
                 </div>
                 {% else %}
                 <div class="text-center py-4">
-                    <p class="text-muted">No hay órdenes registradas para esta posición.</p>
-                    <a href="{% url 'portfolio:order_create' position.id %}" class="btn btn-primary">Agregar primera orden</a>
+                    <p class="text-muted">No hay lotes de compra registrados.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Ventas</h5>
+            </div>
+            <div class="card-body">
+                {% if sales %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cantidad</th>
+                                <th>Fecha</th>
+                                <th>Moneda</th>
+                                <th>Precio (Local)</th>
+                                <th>Precio (USD)</th>
+                                <th>P&amp;L Realizado (ARS)</th>
+                                <th>P&amp;L Realizado (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.amount }}</td>
+                                <td>{{ sale.sold_at|date:"d/m/Y H:i" }}</td>
+                                <td>{{ sale.sell_currency }}</td>
+                                <td>${{ sale.price_local|floatformat:2 }}</td>
+                                <td>${{ sale.price_usd|floatformat:2 }}</td>
+                                <td class="{% if sale.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">${{ sale.realized_pnl_ars|floatformat:2 }}</td>
+                                <td class="{% if sale.realized_pnl_usd >= 0 %}text-success{% else %}text-danger{% endif %}">U$D {{ sale.realized_pnl_usd|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No hay ventas registradas para esta posición.</p>
                 </div>
                 {% endif %}
             </div>

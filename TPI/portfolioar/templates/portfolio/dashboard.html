@@ -49,16 +49,18 @@
     <div class="col-md-4">
         <div class="card border-success">
             <div class="card-body">
-                <h6 class="card-title text-muted">Liquidez ARS</h6>
-                <h4 class="card-text">${{ cash_totals.total_ars|floatformat:2 }}</h4>
+                <h6 class="card-title text-muted">Disponible ARS</h6>
+                <h4 class="card-text">${{ cash_totals.available_ars|floatformat:2 }}</h4>
+                <small class="text-muted">Cargado: ${{ cash_totals.total_ars|floatformat:2 }}</small>
             </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card border-primary">
             <div class="card-body">
-                <h6 class="card-title text-muted">Liquidez USD</h6>
-                <h4 class="card-text">U$D {{ cash_totals.total_usd|floatformat:2 }}</h4>
+                <h6 class="card-title text-muted">Disponible USD</h6>
+                <h4 class="card-text">U$D {{ cash_totals.available_usd|floatformat:2 }}</h4>
+                <small class="text-muted">Cargado: U$D {{ cash_totals.total_usd|floatformat:2 }}</small>
             </div>
         </div>
     </div>
@@ -131,10 +133,11 @@
                             <tr>
                                 <th>Ticker</th>
                                 <th>Empresa</th>
-                                <th>Cantidad</th>
-                                <th>Precio Compra</th>
-                                <th>Precio Actual</th>
-                                <th>Ganancia/Pérdida</th>
+                                <th>Estado</th>
+                                <th>Cantidad Abierta</th>
+                                <th>Costo Prom.</th>
+                                <th>P&amp;L No Realizado</th>
+                                <th>P&amp;L Realizado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -143,12 +146,21 @@
                             <tr>
                                 <td>{{ item.position.stock.ticker }}</td>
                                 <td>{{ item.position.stock.company_name }}</td>
-                                <td>{{ item.position.amount }}</td>
-                                <td>${{ item.position.stock_price_local|floatformat:2 }}</td>
-                                <td>${{ item.position.stock_price_usd|floatformat:2 }}</td>
+                                <td>
+                                    {% if item.position.status == 'open' %}
+                                    <span class="badge bg-success">Abierta</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Cerrada</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.performance.open_amount }}</td>
+                                <td>${{ item.performance.avg_cost_local|floatformat:2 }}</td>
                                 <td class="{% if item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
                                     ${{ item.performance.profit_loss|floatformat:2 }}
                                     ({{ item.performance.profit_loss_percentage|floatformat:2 }}%)
+                                </td>
+                                <td class="{% if item.performance.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ item.performance.realized_pnl_ars|floatformat:2 }}
                                 </td>
                                 <td>
                                     <a href="{% url 'portfolio:position_detail' item.position.id %}" class="btn btn-info btn-sm">Ver</a>

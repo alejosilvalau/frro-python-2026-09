@@ -14,25 +14,27 @@
     <div class="col-md-4">
         <div class="card text-white bg-success">
             <div class="card-body">
-                <h5 class="card-title">Total en Pesos (ARS)</h5>
-                <h3 class="card-text">${{ totals.total_ars|floatformat:2 }}</h3>
+                <h5 class="card-title">Pesos (ARS)</h5>
+                <h3 class="card-text">${{ totals.available_ars|floatformat:2 }}</h3>
+                <small class="opacity-75">Cargado: ${{ totals.total_ars|floatformat:2 }}</small>
             </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card text-white bg-primary">
             <div class="card-body">
-                <h5 class="card-title">Total en Dólares (USD)</h5>
-                <h3 class="card-text">U$D {{ totals.total_usd|floatformat:2 }}</h3>
+                <h5 class="card-title">Dólares (USD)</h5>
+                <h3 class="card-text">U$D {{ totals.available_usd|floatformat:2 }}</h3>
+                <small class="opacity-75">Cargado: U$D {{ totals.total_usd|floatformat:2 }}</small>
             </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card text-white bg-secondary">
             <div class="card-body">
-                <h5 class="card-title">Equivalente en ARS</h5>
+                <h5 class="card-title">Disponible (equiv. ARS)</h5>
                 <h3 class="card-text">${{ totals.total_ars_equivalent|floatformat:2 }}</h3>
-                <small>CCL: ${{ totals.ccl|floatformat:2 }}</small>
+                <small class="opacity-75">CCL: ${{ totals.ccl|floatformat:2 }}</small>
             </div>
         </div>
     </div>

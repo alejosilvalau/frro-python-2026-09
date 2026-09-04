@@ -21,30 +21,48 @@
                             <tr>
                                 <th>Ticker</th>
                                 <th>Empresa</th>
-                                <th class="text-end">Cantidad</th>
-                                <th class="text-end">Precio Compra (ARS)</th>
-                                <th class="text-end">Precio Compra (USD)</th>
-                                <th>Fecha Compra</th>
+                                <th>Estado</th>
+                                <th class="text-end">Cantidad Abierta</th>
+                                <th class="text-end">Costo Prom. (ARS)</th>
+                                <th class="text-end">Costo Prom. (USD)</th>
+                                <th>Fecha Apertura</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for position in page %}
+                            {% for item in items %}
+                            {% with position=item.position summary=item.summary %}
                             <tr>
                                 <td><strong>{{ position.stock.ticker }}</strong></td>
                                 <td>{{ position.stock.company_name }}</td>
-                                <td class="text-end">{{ position.amount }}</td>
-                                <td class="text-end">${{ position.stock_price_local|floatformat:2 }}</td>
-                                <td class="text-end">U$D {{ position.stock_price_usd|floatformat:2 }}</td>
-                                <td>{{ position.purchased_at|date:"d/m/Y" }}</td>
+                                <td>
+                                    {% if position.status == 'open' %}
+                                    <span class="badge bg-success">Abierta</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Cerrada</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ summary.open_amount }}</td>
+                                <td class="text-end">${{ summary.avg_cost_local|floatformat:2 }}</td>
+                                <td class="text-end">U$D {{ summary.avg_cost_usd|floatformat:2 }}</td>
+                                <td>{{ position.opened_at|date:"d/m/Y" }}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{% url 'portfolio:position_detail' position.id %}" class="btn btn-outline-info">Ver</a>
-                                        <a href="{% url 'portfolio:position_update' position.id %}" class="btn btn-outline-warning">Editar</a>
+                                        <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Operar
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="{% url 'portfolio:lot_create' position.id %}">Comprar</a></li>
+                                            {% if summary.open_amount > 0 %}
+                                            <li><a class="dropdown-item" href="{% url 'portfolio:sale_create' position.id %}">Vender</a></li>
+                                            {% endif %}
+                                        </ul>
                                         <a href="{% url 'portfolio:position_delete' position.id %}" class="btn btn-outline-danger" onclick="return confirm('¿Eliminar esta posición?')">Eliminar</a>
                                     </div>
                                 </td>
                             </tr>
+                            {% endwith %}
                             {% endfor %}
                         </tbody>
                     </table>
