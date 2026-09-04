@@ -8,7 +8,7 @@ El sistema resuelve los siguientes problemas concretos:
 
 - El acceso a herramientas de análisis financiero profesional en Argentina requiere mucho conocimiento sobre el mercado.
 - El inversor retail no tiene una forma simple de saber si su cartera realmente le ganó a la inflación o al mercado.
-- No existe una herramienta que combine seguimiento de portfolio, alertas técnicas e interpretación en lenguaje natural con IA en un solo lugar, en español y orientada a Argentina.
+- No existe una herramienta que combine seguimiento de portfolio y alertas técnicas en un solo lugar, en español y orientada a Argentina.
 
 ## Modelo de Dominio
 
@@ -22,7 +22,7 @@ El sistema sigue una arquitectura de 3 capas:
 
 División horizontal de responsabilidades:
 - La **capa de presentación** expone vistas Django y renderiza los templates. No accede directamente a la base de datos.
-- La **capa de negocio** concentra todos los cálculos de rendimiento, indicadores técnicos, evaluación de alertas e integración con LangChain. No contiene elementos de interfaz.
+- La **capa de negocio** concentra todos los cálculos de rendimiento, indicadores técnicos y evaluación de alertas. No contiene elementos de interfaz.
 - La **capa de datos** gestiona todas las consultas a SQL Server mediante el Django ORM (con `mssql-django`) y las llamadas a APIs externas (IOL, INDEC).
 
 División vertical por casos de uso:
@@ -41,14 +41,11 @@ División vertical por casos de uso:
 - RF03: El sistema calcula el rendimiento de cada posición: precio de compra vs. precio actual, ganancia/pérdida en % y en dólares, rendimiento anualizado.
 - RF04: El sistema compara el rendimiento de cada posición contra el S&P 500 (SPY) para el mismo período.
 - RF05: El sistema compara el rendimiento del portfolio contra la inflación acumulada del INDEC para el período de inversión.
-- RF06: El sistema muestra métricas del portfolio completo: valor total invertido, valor actual, ganancia/pérdida total, alpha respecto al S&P 500, distribución por sector, análisis de correlación y volatilidad por posición.
 - RF07: El sistema calcula y muestra indicadores técnicos actuales por posición.
 
 **Módulo 2 – Alertas**
 
-- RF09: El usuario puede configurar alertas sobre acciones con criterios técnicos: RSI > 70 / < 30, precio mayor/menor a un umbral, volumen inusualmente alto, cruce de MACD o combinaciones de indicadores. 
 - RF10: El sistema evalúa periódicamente las condiciones de alerta y registra los disparos en el historial.
-- RF11: El asistente IA interpreta en lenguaje natural los resultados calculados, contextualiza indicadores y compara benchmarks realizando una predicción de precio y recomendación para el usuario.
 
 ### No Funcionales
 
@@ -63,7 +60,7 @@ División vertical por casos de uso:
 **Obligatorios**
 
 - Todas las contraseñas se guardan con encriptado criptográfico (SHA-256 o bcrypt).
-- Todas las API Keys y tokens (IOL, LLM) no se exponen de manera pública (uso de variables de entorno / `.env`).
+- Todas las API Keys y tokens (IOL) no se exponen de manera pública (uso de variables de entorno / `.env`).
 
 ### Maintainability
 
@@ -113,7 +110,6 @@ División vertical por casos de uso:
 
 - **pandas**: manipulación y análisis de series temporales de precios. Central para el cálculo de métricas de rendimiento y estadísticas.
 - **pandas-ta**: extensión de pandas para el cálculo de indicadores técnicos (RSI, MACD, volumen relativo, desviación estándar de retornos, etc.).
-- **LangChain + LLM (GPT-4.1-mini o similar)**: asistente IA que interpreta los resultados calculados en lenguaje natural. Se utiliza LangChain para gestionar el prompt y la integración con el LLM.
 
 ### Capa de Presentación
 
@@ -164,8 +160,6 @@ División vertical por casos de uso:
 - Microsoft. *mssql-django – SQL Server backend for Django*. <https://github.com/microsoft/mssql-django>
 - The pandas development team. *pandas documentation*. <https://pandas.pydata.org/docs/>
 - pandas-ta contributors. *pandas-ta: Technical Analysis Indicators*. <https://github.com/twopirllc/pandas-ta>
-- LangChain Inc. *LangChain documentation*. <https://python.langchain.com/>
-- OpenAI. *OpenAI API Reference*. <https://platform.openai.com/docs/>
 - InvertirOnline. *API IOL – Documentación oficial*. <https://api.invertironline.com/>
 - Ministerio de Economía, Argentina. *API de Series de Tiempo – INDEC IPC*. <https://apis.datos.gob.ar/>
 
@@ -179,8 +173,6 @@ División vertical por casos de uso:
 | requests | — | Llamadas HTTP a las APIs externas (IOL, INDEC). |
 | pandas | — | Manipulación de series temporales de precios para cálculos de rendimiento. |
 | pandas-ta | — | Cálculo de indicadores técnicos (RSI, MACD, etc.) sobre series de precios. |
-| langchain | — | Orquestación del asistente IA: prompt management e integración con LLM. |
-| openai | — | Cliente Python para la API de OpenAI (GPT-4.1-mini). |
 | pytest | — | Framework de tests. |
 | pytest-django | — | Plugin de pytest para proyectos Django (fixtures, settings de test). |
 
