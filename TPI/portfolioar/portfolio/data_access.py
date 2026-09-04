@@ -4,7 +4,7 @@ import time
 import requests
 from django.shortcuts import get_object_or_404
 
-from .models import Position, Order, CashPosition
+from .models import Position, Lot, Sale, SaleLot, CashPosition, CashTransaction
 from core.data_access import get_user_by_id, get_stock_by_id, get_broker_by_id
 
 _IOL_BASE = 'https://api.invertironline.com'
@@ -99,7 +99,7 @@ def get_position_by_id(position_id, user_id=None):
     return get_object_or_404(Position, id=position_id)
 
 
-def create_position(user_id, stock_id, broker_id, amount, stock_price_local, stock_price_usd, purchased_at):
+def create_position(user_id, stock_id, broker_id, opened_at, status='open'):
     user = get_user_by_id(user_id)
     stock = get_stock_by_id(stock_id)
     broker = get_broker_by_id(broker_id)
@@ -108,58 +108,92 @@ def create_position(user_id, stock_id, broker_id, amount, stock_price_local, sto
         user=user,
         stock=stock,
         broker=broker,
-        amount=amount,
-        stock_price_local=stock_price_local,
-        stock_price_usd=stock_price_usd,
-        purchased_at=purchased_at
+        opened_at=opened_at,
+        status=status,
     )
     position.save()
     return position
 
 
-def update_position(position_id, amount=None, stock_price_local=None, stock_price_usd=None):
-    position = Position.objects.get(id=position_id)
-    if amount is not None:
-        position.amount = amount
-    if stock_price_local is not None:
-        position.stock_price_local = stock_price_local
-    if stock_price_usd is not None:
-        position.stock_price_usd = stock_price_usd
-    position.save()
-    return position
+def update_position_status(position_id, status):
+    Position.objects.filter(id=position_id).update(status=status)
 
 
 def delete_position(position_id):
     Position.objects.filter(id=position_id).delete()
 
 
-def get_orders_by_position(position_id):
-    return Order.objects.filter(position_id=position_id)
+def get_lots_by_position(position_id):
+    return Lot.objects.filter(position_id=position_id).order_by('purchased_at', 'id')
 
 
-def create_order(position_id, amount, fulfill_datetime, total_fees, price_local, price_usd):
+def get_lot_by_id(lot_id, user_id=None):
+    if user_id is not None:
+        return get_object_or_404(Lot, id=lot_id, position__user_id=user_id)
+    return get_object_or_404(Lot, id=lot_id)
+
+
+def create_lot(position_id, amount, price_local, price_usd, purchased_at, purchase_currency='ARS', fees=0):
     position = Position.objects.get(id=position_id)
 
-    order = Order(
+    lot = Lot(
         position=position,
         amount=amount,
-        fulfill_datetime=fulfill_datetime,
-        total_fees=total_fees,
         price_local=price_local,
-        price_usd=price_usd
+        price_usd=price_usd,
+        purchased_at=purchased_at,
+        purchase_currency=purchase_currency,
+        fees=fees,
     )
-    order.save()
-    return order
+    lot.save()
+    return lot
 
 
-def get_order_by_id(order_id, user_id=None):
+def delete_lot(lot_id):
+    Lot.objects.filter(id=lot_id).delete()
+
+
+def get_sale_lots_for_lots(lot_ids):
+    return SaleLot.objects.filter(lot_id__in=lot_ids)
+
+
+def create_sale(position_id, amount, price_local, price_usd, sold_at, sell_currency, realized_pnl_ars, realized_pnl_usd):
+    position = Position.objects.get(id=position_id)
+
+    sale = Sale(
+        position=position,
+        amount=amount,
+        price_local=price_local,
+        price_usd=price_usd,
+        sold_at=sold_at,
+        sell_currency=sell_currency,
+        realized_pnl_ars=realized_pnl_ars,
+        realized_pnl_usd=realized_pnl_usd,
+    )
+    sale.save()
+    return sale
+
+
+def create_sale_lot(sale_id, lot_id, amount_consumed, cost_price_local, cost_price_usd):
+    sale_lot = SaleLot(
+        sale_id=sale_id,
+        lot_id=lot_id,
+        amount_consumed=amount_consumed,
+        cost_price_local=cost_price_local,
+        cost_price_usd=cost_price_usd,
+    )
+    sale_lot.save()
+    return sale_lot
+
+
+def get_sales_by_position(position_id):
+    return Sale.objects.filter(position_id=position_id)
+
+
+def get_sale_by_id(sale_id, user_id=None):
     if user_id is not None:
-        return get_object_or_404(Order, id=order_id, position__user_id=user_id)
-    return get_object_or_404(Order, id=order_id)
-
-
-def delete_order(order_id):
-    Order.objects.filter(id=order_id).delete()
+        return get_object_or_404(Sale, id=sale_id, position__user_id=user_id)
+    return get_object_or_404(Sale, id=sale_id)
 
 
 def get_cash_positions_by_user(user_id):
@@ -191,3 +225,32 @@ def update_cash_position(cash_id, amount, description):
 
 def delete_cash_position(cash_id):
     CashPosition.objects.filter(id=cash_id).delete()
+
+
+def get_cash_transactions_by_user(user_id):
+    return CashTransaction.objects.filter(user_id=user_id)
+
+
+def get_cash_transactions_by_position(position_id, tipo=None):
+    qs = CashTransaction.objects.filter(position_id=position_id)
+    if tipo:
+        qs = qs.filter(tipo=tipo)
+    return qs
+
+
+def get_cash_transaction_by_lot(lot_id, tipo=None):
+    qs = CashTransaction.objects.filter(lot_id=lot_id)
+    if tipo:
+        qs = qs.filter(tipo=tipo)
+    return qs.first()
+
+
+def create_cash_transaction(user_id, currency, amount, tipo, position_id=None, lot_id=None, sale_id=None):
+    from core.data_access import get_user_by_id as _get_user
+    user = _get_user(user_id)
+    position = Position.objects.get(id=position_id) if position_id else None
+    lot = Lot.objects.get(id=lot_id) if lot_id else None
+    sale = Sale.objects.get(id=sale_id) if sale_id else None
+    tx = CashTransaction(user=user, currency=currency, amount=amount, tipo=tipo, position=position, lot=lot, sale=sale)
+    tx.save()
+    return tx
