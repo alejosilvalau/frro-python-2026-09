@@ -9,7 +9,7 @@ from .data_access import (
 
 
 class AuthManager:
-    def register(self, first_name, last_name, email, password, phone=None, birthdate=None):
+    def register(self, first_name, last_name, email, password, phone='', birthdate=None):
         if get_user_by_email(email):
             raise ValueError("El email ya está registrado")
 

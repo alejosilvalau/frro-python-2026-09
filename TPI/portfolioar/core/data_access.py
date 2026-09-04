@@ -11,7 +11,7 @@ def get_user_by_email(email):
     return User.objects.filter(email=email).first()
 
 
-def create_user(first_name, last_name, email, password, phone=None, birthdate=None):
+def create_user(first_name, last_name, email, password, phone='', birthdate=None):
     if User.objects.filter(email=email).exists():
         raise ValueError("El email ya está registrado")
 

@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from .business import AuthManager
 
@@ -31,8 +32,8 @@ def register_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
-        phone = request.POST.get('phone')
-        birthdate = request.POST.get('birthdate')
+        phone = request.POST.get('phone') or ''
+        birthdate = request.POST.get('birthdate') or None
 
         if password != password_confirm:
             return render(request, 'core/register.html', {'error': 'Las contraseñas no coinciden'})
@@ -72,6 +73,7 @@ def change_password_view(request):
         try:
             auth_manager = AuthManager()
             auth_manager.change_password(request.user, old_password, new_password)
+            update_session_auth_hash(request, request.user)
             return redirect('core:profile')
         except ValueError as e:
             return render(request, 'core/change_password.html', {'error': str(e)})
