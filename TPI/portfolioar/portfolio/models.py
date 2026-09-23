@@ -1,6 +1,13 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from core.models import Stock, Broker
+
+CASH_TRANSACTION_TYPE_CHOICES = [
+    ('compra', 'Compra'),
+    ('venta', 'Venta'),
+    ('reembolso', 'Reembolso por eliminación'),
+]
 
 
 class Position(models.Model):
@@ -38,6 +45,11 @@ class Lot(models.Model):
         verbose_name = 'lote'
         verbose_name_plural = 'lotes'
         ordering = ['purchased_at', 'id']
+        constraints = [
+            models.CheckConstraint(condition=Q(amount__gt=0), name='lot_amount_positive'),
+            models.CheckConstraint(condition=Q(price_local__gt=0), name='lot_price_local_positive'),
+            models.CheckConstraint(condition=Q(price_usd__gt=0), name='lot_price_usd_positive'),
+        ]
 
     def __str__(self):
         return f"Lote {self.id} - {self.position.stock.ticker} x{self.amount}"
@@ -60,6 +72,11 @@ class Sale(models.Model):
         verbose_name = 'venta'
         verbose_name_plural = 'ventas'
         ordering = ['-sold_at', '-id']
+        constraints = [
+            models.CheckConstraint(condition=Q(amount__gt=0), name='sale_amount_positive'),
+            models.CheckConstraint(condition=Q(price_local__gt=0), name='sale_price_local_positive'),
+            models.CheckConstraint(condition=Q(price_usd__gt=0), name='sale_price_usd_positive'),
+        ]
 
     def __str__(self):
         return f"Venta {self.id} - {self.position.stock.ticker} x{self.amount}"
@@ -105,7 +122,7 @@ class CashPosition(models.Model):
 
 
 class CashTransaction(models.Model):
-    TIPO_CHOICES = [('compra', 'Compra'), ('recupero', 'Recupero')]
+    TIPO_CHOICES = CASH_TRANSACTION_TYPE_CHOICES
     CURRENCY_CHOICES = [('ARS', 'Pesos (ARS)'), ('USD', 'Dólares (USD)')]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cash_transactions')
@@ -120,6 +137,12 @@ class CashTransaction(models.Model):
     class Meta:
         db_table = 'cash_transaction'
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tipo__in=[tipo for tipo, _ in CASH_TRANSACTION_TYPE_CHOICES]),
+                name='cash_transaction_tipo_valid',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.tipo} {self.currency} {self.amount}"

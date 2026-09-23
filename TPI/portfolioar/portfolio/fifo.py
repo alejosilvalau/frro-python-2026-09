@@ -1,4 +1,5 @@
 from collections import namedtuple
+from datetime import timedelta
 from decimal import Decimal
 
 LotConsumption = namedtuple('LotConsumption', ['lot', 'amount_consumed', 'cost_price_local', 'cost_price_usd'])
@@ -72,3 +73,42 @@ def compute_weighted_avg_cost(open_lots):
     avg_cost_local = total_cost_local / total_open_amount
     avg_cost_usd = total_cost_usd / total_open_amount
     return avg_cost_local, avg_cost_usd, total_open_amount
+
+
+def compute_weighted_date(weighted_dates):
+    """Devuelve la fecha promedio ponderada de pares ``(fecha, peso)`` o ``None``."""
+    items = [(date, Decimal(str(weight))) for date, weight in weighted_dates if weight > 0]
+    if not items:
+        return None
+
+    base_date = min(date for date, _ in items)
+    total_weight = sum(weight for _, weight in items)
+    weighted_seconds = sum(
+        Decimal(str((date - base_date).total_seconds())) * weight
+        for date, weight in items
+    )
+    return base_date + timedelta(seconds=float(weighted_seconds / total_weight))
+
+
+def compute_weighted_purchase_date(open_lots):
+    """Promedio ponderado por costo local de lotes abiertos FIFO."""
+    return compute_weighted_date(
+        (lot.purchased_at, Decimal(str(remaining)) * Decimal(str(lot.price_local)))
+        for lot, remaining in open_lots
+    )
+
+
+def compute_weighted_consumed_purchase_date(sale_lots):
+    """Promedio ponderado por costo local de las partes de lote ya vendidas."""
+    return compute_weighted_date(
+        (sale_lot.lot.purchased_at, Decimal(str(sale_lot.amount_consumed)) * Decimal(str(sale_lot.cost_price_local)))
+        for sale_lot in sale_lots
+    )
+
+
+def compute_weighted_sale_date(sales):
+    """Promedio ponderado por producido local de las ventas."""
+    return compute_weighted_date(
+        (sale.sold_at, Decimal(str(sale.amount)) * Decimal(str(sale.price_local)))
+        for sale in sales
+    )

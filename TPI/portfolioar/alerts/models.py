@@ -2,6 +2,15 @@ from django.db import models
 from django.conf import settings
 from core.models import Stock
 
+ALERT_OPERATOR_CHOICES = [
+    ('>', '>'),
+    ('<', '<'),
+    ('>=', '>='),
+    ('<=', '<='),
+    ('==', '=='),
+    ('!=', '!='),
+]
+
 
 class TechnicalIndicator(models.Model):
     name = models.CharField(max_length=50)
@@ -18,14 +27,22 @@ class TechnicalIndicator(models.Model):
 
 
 class AlertCondition(models.Model):
+    OPERATOR_CHOICES = ALERT_OPERATOR_CHOICES
+
     indicator = models.ForeignKey(TechnicalIndicator, on_delete=models.CASCADE, related_name='conditions')
-    operator = models.CharField(max_length=10)
+    operator = models.CharField(max_length=10, choices=OPERATOR_CHOICES)
     threshold_value = models.DecimalField(max_digits=15, decimal_places=4)
 
     class Meta:
         db_table = 'alert_condition'
         verbose_name = 'condición de alerta'
         verbose_name_plural = 'condiciones de alerta'
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(operator__in=[operator for operator, _ in ALERT_OPERATOR_CHOICES]),
+                name='alert_condition_operator_valid',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.indicator.name} {self.operator} {self.threshold_value}"

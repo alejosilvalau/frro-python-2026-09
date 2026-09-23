@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from portfolio.models import CashPosition
@@ -35,3 +36,5 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"Liquidez inicial {currency} {amount} cargada"))
             else:
                 self.stdout.write(f"Liquidez {currency} ya existía, no se duplicó")
+
+        call_command('seed_technical_indicators', stdout=self.stdout)

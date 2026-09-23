@@ -9,7 +9,10 @@
             <h2>{{ alert.name }}</h2>
             <div>
                 <a href="{% url 'alerts:alert_update' alert.id %}" class="btn btn-warning">Editar</a>
-                <a href="{% url 'alerts:alert_delete' alert.id %}" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</a>
+                <form method="post" action="{% url 'alerts:alert_delete' alert.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</button>
+                </form>
                 <a href="{% url 'alerts:alert_list' %}" class="btn btn-secondary">Volver</a>
             </div>
         </div>
@@ -57,7 +60,7 @@
                 <h5 class="mb-0">Condiciones</h5>
             </div>
             <div class="card-body">
-                {% if alert.conditions.all %}
+                {% if assigned_conditions %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -69,13 +72,16 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for condition in alert.conditions.all %}
+                            {% for condition in assigned_conditions %}
                             <tr>
                                 <td>{{ condition.indicator.name }}</td>
                                 <td>{{ condition.operator }}</td>
                                 <td>{{ condition.threshold_value }}</td>
                                 <td>
-                                    <a href="{% url 'alerts:alert_remove_condition' alert.id condition.id %}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta condición?')">Eliminar</a>
+                                    <form method="post" action="{% url 'alerts:alert_remove_condition' alert.id condition.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta condición?')">Eliminar</button>
+                                    </form>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -90,7 +96,10 @@
 
                 <hr>
 
-                <h6>Agregar condición</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Agregar condición</h6>
+                    <a href="{% url 'alerts:condition_create' %}" class="btn btn-outline-primary btn-sm">Nueva condición</a>
+                </div>
                 <form method="post" action="{% url 'alerts:alert_add_condition' alert.id %}">
                     {% csrf_token %}
                     <div class="row">
@@ -119,7 +128,7 @@
                 <h5 class="mb-0">Historial de Disparos</h5>
             </div>
             <div class="card-body">
-                {% if alert.triggers.all %}
+                {% if triggers %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -129,7 +138,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for trigger in alert.triggers.all %}
+                            {% for trigger in triggers %}
                             <tr>
                                 <td>{{ trigger.trigger_datetime|date:"d/m/Y H:i:s" }}</td>
                                 <td>{{ trigger.ai_recommendation|default:"Sin recomendación" }}</td>

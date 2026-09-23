@@ -72,6 +72,21 @@ def get_ccl_rate():
     return float(resp.json()['venta'])
 
 
+def get_indec_inflation_series(start_date, end_date):
+    response = requests.get(
+        'https://apis.datos.gob.ar/series/api/series/',
+        params={
+            'ids': '148.3_INIVELNAL_DICI_M_26',
+            'start_date': start_date.strftime('%Y-%m'),
+            'end_date': end_date.strftime('%Y-%m'),
+            'format': 'json',
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json().get('data', [])
+
+
 def get_sp500_return(start_date, end_date):
     import yfinance as yf
     hist = yf.Ticker('^GSPC').history(
@@ -97,6 +112,10 @@ def get_position_by_id(position_id, user_id=None):
     if user_id is not None:
         return get_object_or_404(Position, id=position_id, user_id=user_id)
     return get_object_or_404(Position, id=position_id)
+
+
+def get_position_for_update(position_id):
+    return Position.objects.select_for_update().get(id=position_id)
 
 
 def create_position(user_id, stock_id, broker_id, opened_at, status='open'):
@@ -127,10 +146,18 @@ def get_lots_by_position(position_id):
     return Lot.objects.filter(position_id=position_id).order_by('purchased_at', 'id')
 
 
+def get_lots_by_position_for_update(position_id):
+    return Lot.objects.select_for_update().filter(position_id=position_id).order_by('purchased_at', 'id')
+
+
 def get_lot_by_id(lot_id, user_id=None):
     if user_id is not None:
         return get_object_or_404(Lot, id=lot_id, position__user_id=user_id)
     return get_object_or_404(Lot, id=lot_id)
+
+
+def get_lot_for_update(lot_id):
+    return Lot.objects.select_for_update().get(id=lot_id)
 
 
 def create_lot(position_id, amount, price_local, price_usd, purchased_at, purchase_currency='ARS', fees=0):
@@ -155,6 +182,10 @@ def delete_lot(lot_id):
 
 def get_sale_lots_for_lots(lot_ids):
     return SaleLot.objects.filter(lot_id__in=lot_ids)
+
+
+def get_sale_lots_by_position(position_id):
+    return SaleLot.objects.filter(sale__position_id=position_id).select_related('lot', 'sale')
 
 
 def create_sale(position_id, amount, price_local, price_usd, sold_at, sell_currency, realized_pnl_ars, realized_pnl_usd):
@@ -198,6 +229,10 @@ def get_sale_by_id(sale_id, user_id=None):
 
 def get_cash_positions_by_user(user_id):
     return CashPosition.objects.filter(user_id=user_id)
+
+
+def get_cash_positions_by_user_for_update(user_id):
+    return CashPosition.objects.select_for_update().filter(user_id=user_id)
 
 
 def get_cash_position_by_id(cash_id, user_id=None):

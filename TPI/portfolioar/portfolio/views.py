@@ -1,12 +1,45 @@
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
+from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from .business import PortfolioManager, LotManager, SaleManager, CashManager
 from .data_access import get_stock_price_from_iol, get_ccl_rate
 from core.business import StockManager, BrokerManager
 from core.data_access import get_stock_by_id
+
+
+def _parse_integer(value, field_name):
+    number = Decimal(value)
+    if not number.is_finite() or number != number.to_integral_value():
+        raise ValueError(f"{field_name} debe ser un número entero válido")
+    return int(number)
+
+
+def _parse_decimal(value, field_name):
+    number = Decimal(value)
+    if not number.is_finite():
+        raise ValueError(f"{field_name} debe ser un número válido")
+    return number
+
+
+def _parse_operation_datetime(value, field_name):
+    parsed = parse_datetime(value or '')
+    if parsed is None:
+        raise ValueError(f"La fecha de {field_name} es inválida")
+    if settings.USE_TZ and timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    elif not settings.USE_TZ and timezone.is_aware(parsed):
+        parsed = timezone.make_naive(parsed, timezone.get_current_timezone())
+    if parsed > timezone.now():
+        raise ValueError(f"La fecha de {field_name} no puede estar en el futuro")
+    return parsed
 
 
 @login_required
@@ -84,19 +117,18 @@ def position_create(request):
     if request.method == 'POST':
         stock_id = request.POST.get('stock_id')
         broker_id = request.POST.get('broker_id')
-        amount = int(request.POST.get('amount', 0))
-        price_local = float(request.POST.get('price_local', 0))
-        price_usd = float(request.POST.get('price_usd', 0))
-        purchased_at = request.POST.get('purchased_at')
-        purchase_currency = request.POST.get('purchase_currency', 'ARS')
 
         try:
+            amount = _parse_integer(request.POST.get('amount'), 'La cantidad')
+            price = _parse_decimal(request.POST.get('price'), 'El precio')
+            purchased_at = _parse_operation_datetime(request.POST.get('purchased_at'), 'compra')
+            purchase_currency = request.POST.get('purchase_currency', 'ARS')
             portfolio_manager = PortfolioManager()
             portfolio_manager.add_position(
-                request.user.id, stock_id, broker_id, amount, price_local, price_usd, purchased_at, purchase_currency
+                request.user.id, stock_id, broker_id, amount, price, purchased_at, purchase_currency
             )
             return redirect('portfolio:position_list')
-        except ValueError as e:
+        except (ValueError, InvalidOperation, TypeError) as e:
             stocks = StockManager().get_all()
             brokers = BrokerManager().get_all()
             return render(request, 'portfolio/position_form.html', {
@@ -136,18 +168,16 @@ def lot_create(request, position_id):
     cash_manager = CashManager()
 
     if request.method == 'POST':
-        amount = int(request.POST.get('amount', 0))
-        price_local = float(request.POST.get('price_local', 0))
-        price_usd = float(request.POST.get('price_usd', 0))
-        purchased_at = request.POST.get('purchased_at')
-        purchase_currency = request.POST.get('purchase_currency', 'ARS')
-        fees = float(request.POST.get('fees', 0) or 0)
-
         try:
+            amount = _parse_integer(request.POST.get('amount'), 'La cantidad')
+            price = _parse_decimal(request.POST.get('price'), 'El precio')
+            purchased_at = _parse_operation_datetime(request.POST.get('purchased_at'), 'compra')
+            purchase_currency = request.POST.get('purchase_currency', 'ARS')
+            fees = _parse_decimal(request.POST.get('fees', '0') or '0', 'La comisión')
             lot_manager = LotManager()
-            lot_manager.add_lot(position_id, amount, price_local, price_usd, purchased_at, purchase_currency, fees)
+            lot_manager.add_lot(position_id, amount, price, purchased_at, purchase_currency, fees)
             return redirect('portfolio:position_detail', position_id=position_id)
-        except ValueError as e:
+        except (ValueError, InvalidOperation, TypeError) as e:
             return render(request, 'portfolio/lot_form.html', {
                 'position': position,
                 'error': str(e),
@@ -181,17 +211,16 @@ def sale_create(request, position_id):
     open_summary = portfolio_manager.get_open_position_summary(position)
 
     if request.method == 'POST':
-        amount = int(request.POST.get('amount', 0))
-        price_local = float(request.POST.get('price_local', 0))
-        price_usd = float(request.POST.get('price_usd', 0))
-        sold_at = request.POST.get('sold_at')
-        sell_currency = request.POST.get('sell_currency', 'ARS')
-
         try:
+            amount = _parse_integer(request.POST.get('amount'), 'La cantidad')
+            price_local = _parse_decimal(request.POST.get('price_local'), 'El precio local')
+            price_usd = _parse_decimal(request.POST.get('price_usd'), 'El precio USD')
+            sold_at = _parse_operation_datetime(request.POST.get('sold_at'), 'venta')
+            sell_currency = request.POST.get('sell_currency', 'ARS')
             sale_manager = SaleManager()
             sale_manager.add_sale(position_id, amount, price_local, price_usd, sold_at, sell_currency)
             return redirect('portfolio:position_detail', position_id=position_id)
-        except ValueError as e:
+        except (ValueError, InvalidOperation, TypeError) as e:
             return render(request, 'portfolio/sale_form.html', {
                 'position': position,
                 'open_summary': open_summary,

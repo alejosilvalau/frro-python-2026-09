@@ -13,4 +13,5 @@ urlpatterns = [
     path('<int:alert_id>/remove-condition/<int:condition_id>/', views.alert_remove_condition, name='alert_remove_condition'),
     path('indicators/', views.indicator_list, name='indicator_list'),
     path('conditions/', views.condition_list, name='condition_list'),
+    path('conditions/create/', views.condition_create, name='condition_create'),
 ]

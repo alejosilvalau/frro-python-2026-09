@@ -1,5 +1,12 @@
+from io import StringIO
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.core.management import call_command
+from django.db import IntegrityError, transaction
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.utils import timezone
 
 from core.models import User, Sector, Stock
 from alerts.models import TechnicalIndicator, AlertCondition, Alert, AlertTrigger
@@ -43,6 +50,15 @@ class AlertConditionModelTest(TestCase):
 
     def test_condition_str(self):
         self.assertEqual(str(self.condition), 'RSI > 70')
+
+    def test_database_rejects_invalid_operator(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AlertCondition.objects.create(
+                    indicator=self.indicator,
+                    operator='invalido',
+                    threshold_value=70,
+                )
 
 
 class AlertModelTest(TestCase):
@@ -185,6 +201,73 @@ class AlertManagerTest(TestCase):
         # Una condición no se cumple -> no dispara, aunque la otra sí
         self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {'rsi': 75, 'macd': 1}))
 
+    def test_alert_without_conditions_does_not_trigger(self):
+        self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {'rsi': 75}))
+
+    def test_missing_indicator_value_does_not_trigger(self):
+        self.alert.conditions.add(self.condition)
+        self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {}))
+
+    def test_indicator_names_are_normalized(self):
+        sma = TechnicalIndicator.objects.create(name='SMA 20', period=20)
+        condition = AlertCondition.objects.create(indicator=sma, operator='>', threshold_value=100)
+        self.alert.conditions.add(condition)
+        self.assertTrue(self.alert_manager.evaluate_alert(self.alert, {'sma_20': 120}))
+
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={'rsi': 75})
+    def test_evaluate_active_alerts_registers_only_matching_active_alerts(self, mock_values):
+        self.alert.conditions.add(self.condition)
+        inactive = Alert.objects.create(
+            user=self.user, stock=self.stock, name='Inactiva', is_active=False
+        )
+        inactive.conditions.add(self.condition)
+
+        stats = self.alert_manager.evaluate_active_alerts()
+
+        self.assertEqual(stats['evaluated'], 1)
+        self.assertEqual(stats['triggered'], 1)
+        self.assertEqual(stats['skipped'], 0)
+        self.assertEqual(AlertTrigger.objects.filter(alert=self.alert).count(), 1)
+        self.assertFalse(AlertTrigger.objects.filter(alert=inactive).exists())
+        mock_values.assert_called_once_with(self.stock, {'rsi'})
+
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={})
+    def test_evaluate_active_alerts_skips_missing_market_data(self, mock_values):
+        self.alert.conditions.add(self.condition)
+
+        stats = self.alert_manager.evaluate_active_alerts()
+
+        self.assertEqual(stats['evaluated'], 0)
+        self.assertEqual(stats['triggered'], 0)
+        self.assertEqual(stats['skipped'], 1)
+        self.assertFalse(AlertTrigger.objects.exists())
+
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={'rsi': 75})
+    def test_evaluate_active_alerts_applies_fifteen_minute_cooldown(self, mock_values):
+        self.alert.conditions.add(self.condition)
+
+        first_stats = self.alert_manager.evaluate_active_alerts()
+        second_stats = self.alert_manager.evaluate_active_alerts()
+
+        self.assertEqual(first_stats['triggered'], 1)
+        self.assertEqual(second_stats['triggered'], 0)
+        self.assertEqual(second_stats['cooldown'], 1)
+        self.assertEqual(AlertTrigger.objects.filter(alert=self.alert).count(), 1)
+        self.assertEqual(mock_values.call_count, 2)
+
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={'rsi': 75})
+    def test_evaluate_active_alerts_retriggers_after_cooldown(self, mock_values):
+        self.alert.conditions.add(self.condition)
+        trigger = AlertTrigger.objects.create(alert=self.alert)
+        AlertTrigger.objects.filter(id=trigger.id).update(
+            trigger_datetime=timezone.now() - timedelta(minutes=16)
+        )
+
+        stats = self.alert_manager.evaluate_active_alerts()
+
+        self.assertEqual(stats['triggered'], 1)
+        self.assertEqual(AlertTrigger.objects.filter(alert=self.alert).count(), 2)
+
 
 class ConditionManagerTest(TestCase):
     """RN05: los operadores de condición de alerta deben ser válidos."""
@@ -250,11 +333,35 @@ class AlertViewsTest(TestCase):
         self.assertIn('error', resp.context)
         self.assertEqual(Alert.objects.filter(user=self.user).count(), 0)
 
+    def test_alert_update_persists_selected_stock(self):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
+        other_stock = Stock.objects.create(
+            ticker='MSFT', company_name='Microsoft', sector=self.sector
+        )
+
+        resp = self.client.post(reverse('alerts:alert_update', args=[alert.id]), {
+            'stock_id': other_stock.id,
+            'name': 'Alerta MSFT',
+            'is_active': 'on',
+        })
+
+        self.assertRedirects(resp, reverse('alerts:alert_detail', args=[alert.id]))
+        alert.refresh_from_db()
+        self.assertEqual(alert.stock, other_stock)
+        self.assertEqual(alert.name, 'Alerta MSFT')
+
     def test_alert_detail_shows_available_conditions(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
         resp = self.client.get(reverse('alerts:alert_detail', args=[alert.id]))
         self.assertEqual(resp.status_code, 200)
         self.assertIn(self.condition, resp.context['conditions'])
+
+    def test_alert_detail_shows_trigger_history(self):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
+        trigger = AlertTrigger.objects.create(alert=alert)
+        resp = self.client.get(reverse('alerts:alert_detail', args=[alert.id]))
+        self.assertContains(resp, 'Historial de Disparos')
+        self.assertIn(trigger, resp.context['triggers'])
 
     def test_alert_add_condition_attaches_existing_condition(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
@@ -267,15 +374,52 @@ class AlertViewsTest(TestCase):
     def test_alert_remove_condition(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
         alert.conditions.add(self.condition)
-        resp = self.client.get(reverse('alerts:alert_remove_condition', args=[alert.id, self.condition.id]))
+        resp = self.client.post(reverse('alerts:alert_remove_condition', args=[alert.id, self.condition.id]))
         self.assertRedirects(resp, reverse('alerts:alert_detail', args=[alert.id]))
         self.assertNotIn(self.condition, alert.conditions.all())
 
     def test_alert_delete(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
-        resp = self.client.get(reverse('alerts:alert_delete', args=[alert.id]))
+        resp = self.client.post(reverse('alerts:alert_delete', args=[alert.id]))
         self.assertRedirects(resp, reverse('alerts:alert_list'))
         self.assertFalse(Alert.objects.filter(id=alert.id).exists())
+
+    def test_destructive_alert_actions_reject_get(self):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
+        alert.conditions.add(self.condition)
+
+        delete_response = self.client.get(reverse('alerts:alert_delete', args=[alert.id]))
+        remove_response = self.client.get(
+            reverse('alerts:alert_remove_condition', args=[alert.id, self.condition.id])
+        )
+
+        self.assertEqual(delete_response.status_code, 405)
+        self.assertEqual(remove_response.status_code, 405)
+        self.assertTrue(Alert.objects.filter(id=alert.id).exists())
+        self.assertIn(self.condition, alert.conditions.all())
+
+    def test_condition_create_page_and_post(self):
+        get_response = self.client.get(reverse('alerts:condition_create'))
+        self.assertEqual(get_response.status_code, 200)
+        self.assertContains(get_response, 'Nueva condición de alerta')
+
+        post_response = self.client.post(reverse('alerts:condition_create'), {
+            'indicator_id': self.indicator.id,
+            'operator': '>=',
+            'threshold_value': '65.5',
+        })
+        self.assertRedirects(post_response, reverse('alerts:condition_list'))
+        self.assertTrue(AlertCondition.objects.filter(operator='>=', threshold_value='65.5').exists())
+
+    def test_condition_create_rejects_invalid_input(self):
+        response = self.client.post(reverse('alerts:condition_create'), {
+            'indicator_id': self.indicator.id,
+            'operator': 'invalido',
+            'threshold_value': '-1',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('error', response.context)
 
     def test_other_users_alert_returns_404(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
@@ -286,3 +430,28 @@ class AlertViewsTest(TestCase):
         other_client.force_login(other_user)
         resp = other_client.get(reverse('alerts:alert_detail', args=[alert.id]))
         self.assertEqual(resp.status_code, 404)
+
+
+class AlertCommandsTest(TestCase):
+    def test_seed_indicators_is_idempotent(self):
+        call_command('seed_technical_indicators', stdout=StringIO())
+        first_count = TechnicalIndicator.objects.count()
+        call_command('seed_technical_indicators', stdout=StringIO())
+
+        self.assertEqual(first_count, 7)
+        self.assertEqual(TechnicalIndicator.objects.count(), 7)
+        self.assertTrue(TechnicalIndicator.objects.filter(name='RSI', period=14).exists())
+        self.assertTrue(TechnicalIndicator.objects.filter(name='SMA 50', period=50).exists())
+
+    @patch('alerts.management.commands.evaluate_alerts.AlertManager.evaluate_active_alerts')
+    def test_evaluate_alerts_command_reports_summary(self, mock_evaluate):
+        mock_evaluate.return_value = {
+            'evaluated': 2, 'triggered': 1, 'cooldown': 4, 'skipped': 3, 'errors': 0,
+        }
+        output = StringIO()
+
+        call_command('evaluate_alerts', stdout=output)
+
+        self.assertIn('2 evaluadas', output.getvalue())
+        self.assertIn('1 disparadas', output.getvalue())
+        self.assertIn('4 en cooldown', output.getvalue())

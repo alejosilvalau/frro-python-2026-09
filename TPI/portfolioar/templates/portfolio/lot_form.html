@@ -40,13 +40,10 @@
                             <label for="amount" class="form-label">Cantidad</label>
                             <input type="number" class="form-control" id="amount" name="amount" min="1" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="price_local" class="form-label">Precio (Local)</label>
-                            <input type="number" class="form-control" id="price_local" name="price_local" step="0.01" min="0.01" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="price_usd" class="form-label">Precio (USD)</label>
-                            <input type="number" class="form-control" id="price_usd" name="price_usd" step="0.01" min="0.01" required>
+                        <div class="col-md-8 mb-3">
+                            <label for="price" class="form-label" id="price-label">Precio (ARS)</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0.01" required>
+                            <small class="text-muted">El precio en la otra moneda se calcula automáticamente con el tipo de cambio CCL del momento de carga. Para compras retroactivas, no representa necesariamente el CCL de la fecha de compra.</small>
                         </div>
                     </div>
                     <div id="cost-display" class="alert alert-info d-none mb-3 py-2">
@@ -86,9 +83,7 @@ function updateCostDisplay() {
 
     const qty = parseFloat(amountEl.value) || 0;
     const currency = currencyEl.value;
-    const price = currency === 'ARS'
-        ? (parseFloat(document.getElementById('price_local').value) || 0)
-        : (parseFloat(document.getElementById('price_usd').value) || 0);
+    const price = parseFloat(document.getElementById('price').value) || 0;
     const available = currency === 'ARS' ? availableARS : availableUSD;
     const cost = qty * price;
 
@@ -108,8 +103,11 @@ function updateCostDisplay() {
 }
 
 document.getElementById('amount').addEventListener('input', updateCostDisplay);
-document.getElementById('price_local').addEventListener('input', updateCostDisplay);
-document.getElementById('price_usd').addEventListener('input', updateCostDisplay);
-document.querySelectorAll('input[name="purchase_currency"]').forEach(r => r.addEventListener('change', updateCostDisplay));
+document.getElementById('price').addEventListener('input', updateCostDisplay);
+document.querySelectorAll('input[name="purchase_currency"]').forEach(r => r.addEventListener('change', () => {
+    const currency = document.querySelector('input[name="purchase_currency"]:checked').value;
+    document.getElementById('price-label').textContent = `Precio (${currency})`;
+    updateCostDisplay();
+}));
 </script>
 {% endblock %}

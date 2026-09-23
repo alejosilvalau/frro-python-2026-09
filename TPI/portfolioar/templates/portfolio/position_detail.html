@@ -96,7 +96,7 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Días Poseído</h5>
-                <h3 class="card-text">{{ performance.days_held }}</h3>
+                <h3 class="card-text">{% if performance.days_held is None %}No disponible{% else %}{{ performance.days_held }}{% endif %}</h3>
             </div>
         </div>
     </div>
@@ -115,7 +115,7 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Valor Actual (ARS)</h5>
-                <h3 class="card-text">${{ performance.current_value|floatformat:2 }}</h3>
+                <h3 class="card-text">{% if performance.current_value is None %}No disponible{% else %}${{ performance.current_value|floatformat:2 }}{% endif %}</h3>
             </div>
         </div>
     </div>
@@ -123,10 +123,14 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">P&amp;L No Realizado (ARS)</h5>
+                {% if performance.profit_loss is None %}
+                <h3 class="card-text">No disponible</h3>
+                {% else %}
                 <h3 class="card-text {% if performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
                     ${{ performance.profit_loss|floatformat:2 }}
                     ({{ performance.profit_loss_percentage|floatformat:2 }}%)
                 </h3>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -151,22 +155,25 @@
                 <div class="row">
                     <div class="col-6">
                         <p class="card-text"><small>Tu rendimiento:</small></p>
-                        <h4 class="{% if performance.profit_loss_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
-                            {{ performance.profit_loss_percentage|floatformat:2 }}%
-                        </h4>
+                        {% if sp500.position_return_usd is None %}<h4>No disponible</h4>{% else %}
+                        <h4 class="{% if sp500.position_return_usd >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ sp500.position_return_usd|floatformat:2 }}%
+                        </h4>{% endif %}
                     </div>
                     <div class="col-6">
                         <p class="card-text"><small>S&P 500:</small></p>
+                        {% if sp500.sp500_return is None %}<h4>No disponible</h4>{% else %}
                         <h4 class="{% if sp500.sp500_return >= 0 %}text-success{% else %}text-danger{% endif %}">
                             {{ sp500.sp500_return|floatformat:2 }}%
-                        </h4>
+                        </h4>{% endif %}
                     </div>
                 </div>
                 <hr>
                 <p class="card-text">Alpha:
+                    {% if sp500.alpha is None %}<strong>No disponible</strong>{% else %}
                     <strong class="{% if sp500.alpha >= 0 %}text-success{% else %}text-danger{% endif %}">
                         {{ sp500.alpha|floatformat:2 }}%
-                    </strong>
+                    </strong>{% endif %}
                 </p>
             </div>
         </div>
@@ -178,22 +185,22 @@
                 <div class="row">
                     <div class="col-6">
                         <p class="card-text"><small>Tu rendimiento:</small></p>
-                        <h4 class="{% if performance.profit_loss_percentage >= 0 %}text-success{% else %}text-danger{% endif %}">
-                            {{ performance.profit_loss_percentage|floatformat:2 }}%
-                        </h4>
+                        {% if inflation.nominal_return is None %}<h4>No disponible</h4>{% else %}
+                        <h4 class="{% if inflation.nominal_return >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ inflation.nominal_return|floatformat:2 }}%
+                        </h4>{% endif %}
                     </div>
                     <div class="col-6">
                         <p class="card-text"><small>Inflación INDEC:</small></p>
-                        <h4 class="text-warning">
-                            {{ inflation.inflation|floatformat:2 }}%
-                        </h4>
+                        <h4 class="text-warning">{% if inflation.inflation is None %}No disponible{% else %}{{ inflation.inflation|floatformat:2 }}%{% endif %}</h4>
                     </div>
                 </div>
                 <hr>
                 <p class="card-text">Rendimiento Real:
+                    {% if inflation.real_return is None %}<strong>No disponible</strong>{% else %}
                     <strong class="{% if inflation.real_return >= 0 %}text-success{% else %}text-danger{% endif %}">
                         {{ inflation.real_return|floatformat:2 }}%
-                    </strong>
+                    </strong>{% endif %}
                 </p>
             </div>
         </div>
