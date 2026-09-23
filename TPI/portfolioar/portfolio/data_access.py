@@ -1,3 +1,4 @@
+import math
 import os
 import time
 
@@ -95,7 +96,11 @@ def get_sp500_return(start_date, end_date):
         auto_adjust=True,
     )
     if len(hist) >= 2:
-        return float(hist['Close'].iloc[-1] / hist['Close'].iloc[0] - 1) * 100
+        start_close = hist['Close'].iloc[0]
+        end_close = hist['Close'].iloc[-1]
+        if not (math.isfinite(start_close) and math.isfinite(end_close)) or start_close == 0:
+            return None
+        return float(end_close / start_close - 1) * 100
     return None
 
 

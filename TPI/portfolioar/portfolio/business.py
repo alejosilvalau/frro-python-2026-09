@@ -87,7 +87,7 @@ class ExternalAPIs:
     def get_sp500_performance(start_date, end_date):
         try:
             result = get_sp500_return(start_date, end_date)
-            if result is not None:
+            if result is not None and math.isfinite(result):
                 return Decimal(str(round(result, 4)))
             return None
         except Exception:
@@ -270,9 +270,16 @@ class PortfolioManager:
             'total_pnl_ars': profit_loss + realized_pnl_ars if profit_loss is not None else None,
         }
 
+    # Extrapolar un retorno a un año completo cuando la posición se sostuvo apenas
+    # unos días produce cifras astronómicas y sin sentido (p. ej. 600% en 5 días
+    # anualizado da ~1e64%). Por debajo de este umbral no se anualiza.
+    MIN_DAYS_FOR_ANNUALIZATION = 30
+
     @staticmethod
     def _calculate_cagr(initial_value, final_value, years):
         if initial_value is None or final_value is None or years is None or years <= 0:
+            return None
+        if years * 365 < PortfolioManager.MIN_DAYS_FOR_ANNUALIZATION:
             return None
         if initial_value <= 0 or final_value < 0:
             return None

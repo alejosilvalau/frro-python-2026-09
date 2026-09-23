@@ -190,6 +190,18 @@ class PortfolioManagerTest(PortfolioTestBase):
         )
         self.assertEqual(result.quantize(Decimal('0.0001')), Decimal('10.0000'))
 
+    def test_cagr_is_not_annualized_for_very_short_holding_periods(self):
+        result = self.portfolio_manager._calculate_cagr(
+            Decimal('480'), Decimal('3400'), Decimal('5') / Decimal('365')
+        )
+        self.assertIsNone(result)
+
+    @patch('portfolio.business.get_sp500_return', return_value=float('nan'))
+    def test_sp500_performance_treats_nan_as_unavailable(self, mock_get_sp500_return):
+        from portfolio.business import ExternalAPIs
+        result = ExternalAPIs.get_sp500_performance(datetime(2024, 1, 1).date(), datetime(2024, 1, 2).date())
+        self.assertIsNone(result)
+
     @patch('portfolio.business.get_ccl_rate', return_value=Decimal('200'))
     @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('20000'))
     @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('10'))
@@ -770,3 +782,23 @@ class ApiInstrumentPriceViewTest(PortfolioTestBase):
     def test_iol_failure_returns_502(self, mock_iol):
         resp = self.client.get(reverse('portfolio:api_instrument_price'), {'stock_id': self.stock.id})
         self.assertEqual(resp.status_code, 502)
+
+
+class Sp500ReturnDataAccessTest(TestCase):
+    """yfinance a veces devuelve el día de mercado más reciente sin cerrar (Close=NaN).
+    Dividir por/con NaN no tira excepción en Python, así que sin esta validación explícita
+    el NaN se filtraba silenciosamente hasta el template como texto "NaN%"."""
+
+    @patch('yfinance.Ticker')
+    def test_returns_none_when_most_recent_close_is_nan(self, mock_ticker_cls):
+        import pandas as pd
+
+        hist = pd.DataFrame({
+            'Close': [100.0, 105.0, float('nan')],
+        })
+        mock_ticker_cls.return_value.history.return_value = hist
+
+        from portfolio.data_access import get_sp500_return
+        result = get_sp500_return(datetime(2024, 1, 1).date(), datetime(2024, 1, 3).date())
+
+        self.assertIsNone(result)

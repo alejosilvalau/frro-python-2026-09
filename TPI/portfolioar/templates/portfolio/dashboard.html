@@ -22,16 +22,20 @@
         <div class="card text-white bg-success">
             <div class="card-body">
                 <h5 class="card-title">Valor Actual</h5>
-                <h3 class="card-text">${{ summary.total_current_value|floatformat:2 }}</h3>
+                <h3 class="card-text">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|floatformat:2 }}{% endif %}</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white {% if summary.profit_loss >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+        <div class="card text-white {% if summary.profit_loss is None %}bg-secondary{% elif summary.profit_loss >= 0 %}bg-success{% else %}bg-danger{% endif %}">
             <div class="card-body">
                 <h5 class="card-title">Ganancia/Pérdida</h5>
+                {% if summary.profit_loss is None %}
+                <h3 class="card-text">No disponible</h3>
+                {% else %}
                 <h3 class="card-text">${{ summary.profit_loss|floatformat:2 }}</h3>
                 <p class="card-text">{{ summary.profit_loss_percentage|floatformat:2 }}%</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -68,7 +72,7 @@
         <div class="card border-secondary">
             <div class="card-body">
                 <h6 class="card-title text-muted">Patrimonio Total (ARS)</h6>
-                <h4 class="card-text">${{ summary.total_current_value|add:cash_totals.total_ars_equivalent|floatformat:2 }}</h4>
+                <h4 class="card-text">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|add:cash_totals.total_ars_equivalent|floatformat:2 }}{% endif %}</h4>
                 <small class="text-muted">Inversiones + Liquidez</small>
             </div>
         </div>
@@ -80,12 +84,16 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Comparación S&P 500</h5>
+                {% if summary.alpha is None %}
+                <h3 class="card-text">No disponible</h3>
+                {% else %}
                 <h3 class="card-text {% if summary.alpha >= 0 %}text-success{% else %}text-danger{% endif %}">
                     {{ summary.alpha|floatformat:2 }}%
                 </h3>
+                {% endif %}
                 <p class="card-text">
-                    <small>Tu rendimiento: {{ summary.profit_loss_percentage|floatformat:2 }}% |
-                    S&P 500: {{ summary.sp500_return|floatformat:2 }}%</small>
+                    <small>Tu rendimiento: {% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %} |
+                    S&P 500: {% if summary.sp500_return is None %}No disponible{% else %}{{ summary.sp500_return|floatformat:2 }}%{% endif %}</small>
                 </p>
             </div>
         </div>
@@ -94,12 +102,16 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Comparación Inflación</h5>
+                {% if summary.real_return is None %}
+                <h3 class="card-text">No disponible</h3>
+                {% else %}
                 <h3 class="card-text {% if summary.real_return >= 0 %}text-success{% else %}text-danger{% endif %}">
                     {{ summary.real_return|floatformat:2 }}%
                 </h3>
+                {% endif %}
                 <p class="card-text">
-                    <small>Tu rendimiento: {{ summary.profit_loss_percentage|floatformat:2 }}% |
-                    Inflación: {{ summary.inflation|floatformat:2 }}%</small>
+                    <small>Tu rendimiento: {% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %} |
+                    Inflación: {% if summary.inflation is None %}No disponible{% else %}{{ summary.inflation|floatformat:2 }}%{% endif %}</small>
                 </p>
             </div>
         </div>
@@ -155,9 +167,13 @@
                                 </td>
                                 <td>{{ item.performance.open_amount }}</td>
                                 <td>${{ item.performance.avg_cost_local|floatformat:2 }}</td>
-                                <td class="{% if item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                <td class="{% if item.performance.profit_loss is None %}text-muted{% elif item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if item.performance.profit_loss is None %}
+                                    No disponible
+                                    {% else %}
                                     ${{ item.performance.profit_loss|floatformat:2 }}
                                     ({{ item.performance.profit_loss_percentage|floatformat:2 }}%)
+                                    {% endif %}
                                 </td>
                                 <td class="{% if item.performance.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">
                                     ${{ item.performance.realized_pnl_ars|floatformat:2 }}
