@@ -59,7 +59,7 @@ División vertical por casos de uso:
 
 **Obligatorios**
 
-- Todas las contraseñas se guardan con encriptado criptográfico (SHA-256 o bcrypt).
+- Todas las contraseñas se almacenan mediante un hash criptográfico seguro. La implementación utiliza PBKDF2, provisto por el sistema de autenticación de Django.
 - Todas las API Keys y tokens (IOL) no se exponen de manera pública (uso de variables de entorno / `.env`).
 
 ### Maintainability
@@ -103,7 +103,7 @@ División vertical por casos de uso:
 
 - **SQL Server**: motor relacional robusto, ampliamente utilizado en entornos empresariales. Almacena todas las entidades del dominio.
 - **Django ORM + mssql-django**: el ORM incluido en Django, con el backend oficial de Microsoft para SQL Server (`mssql-django`). Permite definir los modelos como clases Python y gestionar migraciones sin escribir SQL directamente, facilitando el cambio de motor de base de datos si fuera necesario.
-- **API IOL (InvertirOnline)**: API REST oficial del broker argentino InvertirOnline. Requiere cuenta en IOL y autenticación por token (OAuth2). Provee cotizaciones en tiempo real e históricas de acciones, bonos y CEDEARs del mercado argentino (BYMA) e internacional. Se utiliza para obtener los precios necesarios para calcular el rendimiento de las posiciones y alimentar los snapshots diarios.
+- **API IOL (InvertirOnline)**: API REST oficial del broker argentino InvertirOnline. Requiere cuenta en IOL y autenticación por token (OAuth2). Provee cotizaciones en tiempo real e históricas de acciones, bonos y CEDEARs del mercado argentino (BYMA) e internacional. Se utiliza para obtener los precios necesarios para calcular el rendimiento de las posiciones.
 - **API INDEC (datos.gob.ar)**: API REST pública del INDEC para obtener la variación mensual del IPC nacional. Gratuita, sin autenticación. Endpoint: `https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json`
 
 ### Capa de Negocio
@@ -153,6 +153,35 @@ División vertical por casos de uso:
 | **Precondición** | Existen indicadores técnicos y condiciones cargadas en el sistema. |
 | **Camino básico** | 1. El usuario navega a "Alertas → Nueva alerta". 2. Selecciona acción y nombre. 3. Desde el detalle de la alerta, agrega una o más condiciones existentes. 4. El sistema valida RN05. 5. La alerta queda activa y lista para ser evaluada. |
 | **Camino alternativo** | Si el operador de alguna condición no es válido (RN05), el sistema rechaza la condición con un mensaje de error. |
+
+### CU04 – Registrar venta de una posición
+
+| Campo | Descripción |
+| --- | --- |
+| **Actor** | Usuario autenticado |
+| **Precondición** | El usuario tiene una posición con títulos disponibles para vender. |
+| **Camino básico** | 1. El usuario accede a una posición y selecciona "Operar → Vender". 2. Ingresa cantidad, precios en ARS/USD, moneda y fecha de venta. 3. El sistema valida RN03 y RN04. 4. Consume primero los lotes más antiguos mediante FIFO. 5. Calcula el P&L realizado, acredita la liquidez en la moneda elegida y cierra la posición si no quedan títulos. |
+| **Camino alternativo** | Si la cantidad es inválida o supera los títulos disponibles, el sistema muestra un error y no registra la venta. |
+
+## Ejecución periódica de alertas
+
+El comando `python manage.py evaluate_alerts` evalúa una vez todas las alertas activas y
+registra en `AlertTrigger` aquellas cuyas condiciones se cumplen. Las alertas sin condiciones
+o sin todos los datos de mercado necesarios se omiten de forma segura.
+
+Para evitar notificaciones repetidas ante una condición sostenida, cada alerta tiene un
+cooldown persistido de 15 minutos: durante ese período se evalúa normalmente, pero no se crea
+otro `AlertTrigger`.
+
+En el entorno desplegado debe programarse su ejecución periódica. Por ejemplo, para evaluarlo
+cada 15 minutos mediante cron:
+
+```cron
+*/15 * * * * cd /ruta/a/portfolioar && /ruta/al/venv/bin/python manage.py evaluate_alerts
+```
+
+El catálogo inicial se crea de forma idempotente con
+`python manage.py seed_technical_indicators`; `seed_demo_data` también ejecuta este seed.
 
 ## Bibliografía
 
