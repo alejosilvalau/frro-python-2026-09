@@ -65,9 +65,6 @@ class ConditionManager:
         if operator not in valid_operators:
             raise ValueError(f"Operador inválido. Use: {', '.join(valid_operators)}")
 
-        if threshold_value < 0:
-            raise ValueError("El valor umbral debe ser mayor o igual a 0")
-
         return create_condition(indicator_id, operator, threshold_value)
 
 

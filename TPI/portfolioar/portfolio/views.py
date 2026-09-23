@@ -53,8 +53,8 @@ def dashboard(request):
     positions_with_performance = []
     for position in positions:
         performance = portfolio_manager.calculate_position_performance(position)
-        sp500_comparison = portfolio_manager.compare_with_sp500(position)
-        inflation_comparison = portfolio_manager.compare_with_inflation(position)
+        sp500_comparison = portfolio_manager.compare_with_sp500(position, performance)
+        inflation_comparison = portfolio_manager.compare_with_inflation(position, performance)
         technical_indicators = portfolio_manager.get_technical_indicators(position)
 
         positions_with_performance.append({
@@ -92,8 +92,8 @@ def position_detail(request, position_id):
     portfolio_manager = PortfolioManager()
     position = portfolio_manager.get_position(position_id, request.user.id)
     performance = portfolio_manager.calculate_position_performance(position)
-    sp500_comparison = portfolio_manager.compare_with_sp500(position)
-    inflation_comparison = portfolio_manager.compare_with_inflation(position)
+    sp500_comparison = portfolio_manager.compare_with_sp500(position, performance)
+    inflation_comparison = portfolio_manager.compare_with_inflation(position, performance)
     technical_indicators = portfolio_manager.get_technical_indicators(position)
     lots_with_remaining = portfolio_manager.get_lots_with_remaining(position_id)
 
@@ -213,12 +213,11 @@ def sale_create(request, position_id):
     if request.method == 'POST':
         try:
             amount = _parse_integer(request.POST.get('amount'), 'La cantidad')
-            price_local = _parse_decimal(request.POST.get('price_local'), 'El precio local')
-            price_usd = _parse_decimal(request.POST.get('price_usd'), 'El precio USD')
+            price = _parse_decimal(request.POST.get('price'), 'El precio')
             sold_at = _parse_operation_datetime(request.POST.get('sold_at'), 'venta')
             sell_currency = request.POST.get('sell_currency', 'ARS')
             sale_manager = SaleManager()
-            sale_manager.add_sale(position_id, amount, price_local, price_usd, sold_at, sell_currency)
+            sale_manager.add_sale(position_id, amount, price, sold_at, sell_currency)
             return redirect('portfolio:position_detail', position_id=position_id)
         except (ValueError, InvalidOperation, TypeError) as e:
             return render(request, 'portfolio/sale_form.html', {

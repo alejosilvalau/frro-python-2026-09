@@ -201,6 +201,15 @@ class AlertManagerTest(TestCase):
         # Una condición no se cumple -> no dispara, aunque la otra sí
         self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {'rsi': 75, 'macd': 1}))
 
+    def test_macd_negative_threshold_can_be_created_and_evaluated(self):
+        macd_indicator = TechnicalIndicator.objects.create(name='MACD', period=12)
+        macd_condition = ConditionManager().create(macd_indicator.id, '<', -1)
+        self.alert.conditions.add(macd_condition)
+
+        self.assertEqual(macd_condition.threshold_value, -1)
+        self.assertTrue(self.alert_manager.evaluate_alert(self.alert, {'macd': -2}))
+        self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {'macd': 0}))
+
     def test_alert_without_conditions_does_not_trigger(self):
         self.assertFalse(self.alert_manager.evaluate_alert(self.alert, {'rsi': 75}))
 
@@ -284,9 +293,9 @@ class ConditionManagerTest(TestCase):
         with self.assertRaises(ValueError):
             self.condition_manager.create(self.indicator.id, '<>', 70)
 
-    def test_create_negative_threshold_raises(self):
-        with self.assertRaises(ValueError):
-            self.condition_manager.create(self.indicator.id, '>', -5)
+    def test_create_negative_threshold(self):
+        condition = self.condition_manager.create(self.indicator.id, '>', -5)
+        self.assertEqual(condition.threshold_value, -5)
 
 
 class AlertViewsTest(TestCase):

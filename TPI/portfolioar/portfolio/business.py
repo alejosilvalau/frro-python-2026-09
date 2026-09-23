@@ -278,8 +278,9 @@ class PortfolioManager:
             return None
         return ((final_value / initial_value) ** (Decimal('1') / years) - 1) * 100
 
-    def compare_with_sp500(self, position):
-        performance = self.calculate_position_performance(position)
+    def compare_with_sp500(self, position, performance=None):
+        if performance is None:
+            performance = self.calculate_position_performance(position)
         start_date = performance['comparison_start']
         end_date = performance['comparison_end']
         if start_date is None or end_date is None:
@@ -301,8 +302,9 @@ class PortfolioManager:
             'position_return_usd': position_return_usd,
         }
 
-    def compare_with_inflation(self, position):
-        performance = self.calculate_position_performance(position)
+    def compare_with_inflation(self, position, performance=None):
+        if performance is None:
+            performance = self.calculate_position_performance(position)
         start_date = performance['comparison_start']
         end_date = performance['comparison_end']
         if start_date is None or end_date is None:
@@ -528,13 +530,10 @@ class SaleManager:
     def get_sale(self, sale_id, user_id=None):
         return get_sale_by_id(sale_id, user_id)
 
-    def add_sale(self, position_id, amount, price_local, price_usd, sold_at, sell_currency='ARS'):
+    def add_sale(self, position_id, amount, price, sold_at, sell_currency='ARS'):
         if amount <= 0:
             raise ValueError("La cantidad debe ser mayor a 0")
-        if price_local <= 0 or price_usd <= 0:
-            raise ValueError("El precio debe ser mayor a 0")
-        if sell_currency not in ('ARS', 'USD'):
-            raise ValueError("La moneda debe ser ARS o USD")
+        price_local, price_usd = _resolve_lot_prices(price, sell_currency)
         sold_at = _validate_operation_datetime(sold_at, 'venta')
 
         with transaction.atomic():

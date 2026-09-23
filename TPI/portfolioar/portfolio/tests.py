@@ -257,7 +257,7 @@ class PortfolioManagerTest(PortfolioTestBase):
         self.assertFalse(Position.objects.filter(id=self.position.id).exists())
 
     def test_remove_position_with_sales_raises(self):
-        self.sale_manager.add_sale(self.position.id, 4, 17000.00, 170.00, datetime(2024, 2, 1))
+        self.sale_manager.add_sale(self.position.id, 4, 17000.00, datetime(2024, 2, 1))
         with self.assertRaises(ValueError):
             self.portfolio_manager.remove_position(self.position.id)
 
@@ -283,14 +283,14 @@ class SaleFIFOTest(PortfolioTestBase):
         )
 
     def test_partial_sell_reduces_open_amount(self):
-        self.sale_manager.add_sale(self.position.id, 5, 25000.00, 250.00, datetime(2024, 3, 1))
+        self.sale_manager.add_sale(self.position.id, 5, 25000.00, datetime(2024, 3, 1))
         summary = self.portfolio_manager.get_open_position_summary(self.position)
         self.assertEqual(summary['open_amount'], 15)
 
     def test_fifo_consumes_oldest_lot_first(self):
         # 10 @ 15000 (oldest) + 10 @ 20000 (newest); selling 12 should consume
         # all 10 of the oldest lot and 2 of the newest.
-        sale = self.sale_manager.add_sale(self.position.id, 12, 25000.00, 250.00, datetime(2024, 3, 1))
+        sale = self.sale_manager.add_sale(self.position.id, 12, 25000.00, datetime(2024, 3, 1))
         consumed = list(sale.consumed_lots.all().order_by('lot__purchased_at'))
         self.assertEqual(len(consumed), 2)
         self.assertEqual(consumed[0].amount_consumed, 10)
@@ -300,38 +300,54 @@ class SaleFIFOTest(PortfolioTestBase):
 
     def test_realized_pnl_correct(self):
         # Sell 10 shares (the whole oldest lot bought at 15000) at 25000 -> pnl = 10*(25000-15000)
-        sale = self.sale_manager.add_sale(self.position.id, 10, 25000.00, 250.00, datetime(2024, 3, 1))
+        sale = self.sale_manager.add_sale(self.position.id, 10, 25000.00, datetime(2024, 3, 1))
         self.assertEqual(sale.realized_pnl_ars, 100000)
 
     def test_sell_more_than_available_raises(self):
         with self.assertRaises(ValueError):
-            self.sale_manager.add_sale(self.position.id, 100, 25000.00, 250.00, datetime(2024, 3, 1))
+            self.sale_manager.add_sale(self.position.id, 100, 25000.00, datetime(2024, 3, 1))
 
     def test_sell_credits_cash(self):
         available_before = self.cash_manager.get_available(self.user.id, 'ARS')
-        sale = self.sale_manager.add_sale(self.position.id, 5, 25000.00, 250.00, datetime(2024, 3, 1))
+        sale = self.sale_manager.add_sale(self.position.id, 5, 25000.00, datetime(2024, 3, 1))
         available_after = self.cash_manager.get_available(self.user.id, 'ARS')
         self.assertEqual(available_after, available_before + 125000)
         self.assertTrue(CashTransaction.objects.filter(
             sale=sale, tipo='venta', amount=125000
         ).exists())
 
+    @patch('portfolio.business.get_ccl_rate', return_value=1000)
+    def test_sale_prices_are_derived_from_the_selected_currency(self, mock_ccl):
+        sale = self.sale_manager.add_sale(
+            self.position.id, 1, Decimal('25'), datetime(2024, 3, 1), 'USD'
+        )
+
+        self.assertEqual(sale.price_usd, Decimal('25'))
+        self.assertEqual(sale.price_local, Decimal('25000'))
+
+    @patch('portfolio.business.get_ccl_rate', side_effect=Exception('CCL no disponible'))
+    def test_sale_creation_fails_when_ccl_is_unavailable(self, mock_ccl):
+        with self.assertRaisesRegex(ValueError, 'tipo de cambio'):
+            self.sale_manager.add_sale(
+                self.position.id, 1, Decimal('25000'), datetime(2024, 3, 1), 'ARS'
+            )
+
     def test_selling_all_open_lots_closes_position(self):
-        self.sale_manager.add_sale(self.position.id, 20, 25000.00, 250.00, datetime(2024, 3, 1))
+        self.sale_manager.add_sale(self.position.id, 20, 25000.00, datetime(2024, 3, 1))
         self.position.refresh_from_db()
         self.assertEqual(self.position.status, 'closed')
 
     def test_sale_rejects_date_before_consumed_lot_purchase(self):
         with self.assertRaises(ValueError):
             self.sale_manager.add_sale(
-                self.position.id, 5, 25000.00, 250.00, datetime(2023, 12, 31)
+                self.position.id, 5, 25000.00, datetime(2023, 12, 31)
             )
 
     @patch('portfolio.business.create_sale_lot', side_effect=RuntimeError('fallo de escritura'))
     def test_sale_rolls_back_when_sale_lot_creation_fails(self, mock_sale_lot):
         with self.assertRaises(RuntimeError):
             self.sale_manager.add_sale(
-                self.position.id, 5, 25000.00, 250.00, datetime(2024, 3, 1)
+                self.position.id, 5, 25000.00, datetime(2024, 3, 1)
             )
 
         self.assertFalse(Sale.objects.filter(position=self.position).exists())
@@ -340,14 +356,14 @@ class SaleFIFOTest(PortfolioTestBase):
     @patch('portfolio.business.get_position_for_update', wraps=get_position_for_update)
     def test_sale_locks_position_before_calculating_available_lots(self, mock_position_for_update):
         self.sale_manager.add_sale(
-            self.position.id, 5, 25000.00, 250.00, datetime(2024, 3, 1)
+            self.position.id, 5, 25000.00, datetime(2024, 3, 1)
         )
 
         mock_position_for_update.assert_called_once_with(self.position.id)
 
     @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('20'))
     def test_closed_position_uses_realized_return_for_comparison(self, mock_sp500):
-        self.sale_manager.add_sale(self.position.id, 20, 30000.00, 300.00, datetime(2024, 3, 1))
+        self.sale_manager.add_sale(self.position.id, 20, 30000.00, datetime(2024, 3, 1))
 
         performance = self.portfolio_manager.calculate_position_performance(self.position)
         comparison = self.portfolio_manager.compare_with_sp500(self.position)
@@ -504,6 +520,25 @@ class PositionDetailViewTest(PortfolioTestBase):
         self.assertIsNone(resp.context['inflation']['inflation'])
         self.assertContains(resp, 'No disponible')
 
+    @patch('portfolio.views.PortfolioManager.get_technical_indicators', return_value={})
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('5'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('8'))
+    def test_detail_calculates_performance_once_for_both_comparisons(self, mock_sp500, mock_indec, mock_indicators):
+        performance = {
+            'comparison_start': datetime(2024, 1, 1),
+            'comparison_end': datetime(2024, 2, 1),
+            'profit_loss_percentage': Decimal('10'),
+            'profit_loss_percentage_usd': Decimal('8'),
+        }
+        with patch(
+            'portfolio.views.PortfolioManager.calculate_position_performance',
+            return_value=performance,
+        ) as mock_performance:
+            response = self.client.get(reverse('portfolio:position_detail', args=[self.position.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_performance.call_count, 1)
+
 
 class LotViewsTest(PortfolioTestBase):
     def setUp(self):
@@ -552,7 +587,7 @@ class LotViewsTest(PortfolioTestBase):
         self.assertEqual(available_after, available_before + 6000)
 
     def test_delete_sold_lot_is_blocked_with_message(self):
-        self.sale_manager.add_sale(self.position.id, 10, 1500.0, 15.0, datetime(2024, 3, 1))
+        self.sale_manager.add_sale(self.position.id, 10, 1500.0, datetime(2024, 3, 1))
         lot = list(self.lot_manager.get_position_lots(self.position.id))[0]
         resp = self.client.get(reverse('portfolio:lot_delete', args=[lot.id]), follow=True)
         stored_messages = list(resp.context['messages'])
@@ -577,7 +612,7 @@ class SaleViewTest(PortfolioTestBase):
     def test_post_valid_reduces_open_amount_and_credits_cash(self):
         available_before = self.cash_manager.get_available(self.user.id, 'ARS')
         data = {
-            'amount': '4', 'price_local': '1500', 'price_usd': '15',
+            'amount': '4', 'price': '1500',
             'sold_at': '2024-03-01T10:00', 'sell_currency': 'ARS',
         }
         resp = self.client.post(reverse('portfolio:sale_create', args=[self.position.id]), data)
@@ -589,7 +624,7 @@ class SaleViewTest(PortfolioTestBase):
 
     def test_post_more_than_open_shows_error(self):
         data = {
-            'amount': '100', 'price_local': '1500', 'price_usd': '15',
+            'amount': '100', 'price': '1500',
             'sold_at': '2024-03-01T10:00', 'sell_currency': 'ARS',
         }
         resp = self.client.post(reverse('portfolio:sale_create', args=[self.position.id]), data)
@@ -598,7 +633,7 @@ class SaleViewTest(PortfolioTestBase):
 
     def test_post_malformed_price_shows_error(self):
         data = {
-            'amount': '4', 'price_local': 'abc', 'price_usd': '15',
+            'amount': '4', 'price': 'abc',
             'sold_at': '2024-03-01T10:00', 'sell_currency': 'ARS',
         }
         resp = self.client.post(reverse('portfolio:sale_create', args=[self.position.id]), data)
@@ -624,7 +659,7 @@ class PositionDeleteViewTest(PortfolioTestBase):
         self.assertEqual(available_after, available_before + 10000)
 
     def test_delete_with_sales_is_blocked_with_message(self):
-        self.sale_manager.add_sale(self.position.id, 5, 1500.0, 15.0, datetime(2024, 3, 1))
+        self.sale_manager.add_sale(self.position.id, 5, 1500.0, datetime(2024, 3, 1))
         resp = self.client.get(reverse('portfolio:position_delete', args=[self.position.id]), follow=True)
         stored_messages = list(resp.context['messages'])
         self.assertTrue(any('ventas' in str(m) for m in stored_messages))
