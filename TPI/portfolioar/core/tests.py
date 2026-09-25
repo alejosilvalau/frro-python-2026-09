@@ -141,6 +141,8 @@ class AuthViewsTest(TestCase):
     def test_home_shows_landing_when_anonymous(self):
         resp = self.client.get(reverse('core:home'))
         self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'd-flex flex-column min-vh-100')
+        self.assertContains(resp, 'flex-grow-1')
 
     def test_home_redirects_to_dashboard_when_authenticated(self):
         self.client.force_login(self.user)
@@ -159,6 +161,21 @@ class AuthViewsTest(TestCase):
         })
         self.assertRedirects(resp, reverse('core:login'))
         self.assertTrue(User.objects.filter(email='ana@example.com').exists())
+
+    def test_register_success_shows_one_toast_on_login(self):
+        response = self.client.post(reverse('core:register'), {
+            'first_name': 'Ana',
+            'last_name': 'Gómez',
+            'email': 'ana@example.com',
+            'password': 'password123',
+            'password_confirm': 'password123',
+        }, follow=True)
+
+        self.assertContains(response, 'Tu cuenta fue creada. Ya podés iniciar sesión.')
+        self.assertContains(response, 'class="toast text-bg-success border-0"')
+
+        next_response = self.client.get(reverse('core:login'))
+        self.assertNotContains(next_response, 'Tu cuenta fue creada. Ya podés iniciar sesión.')
 
     def test_register_password_mismatch_shows_error(self):
         resp = self.client.post(reverse('core:register'), {
@@ -201,6 +218,19 @@ class AuthViewsTest(TestCase):
             'password': 'testpass123',
         })
         self.assertRedirects(resp, reverse('portfolio:dashboard'))
+
+    def test_login_post_with_csrf_token_succeeds(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        login_url = reverse('core:login')
+        csrf_client.get(login_url)
+
+        response = csrf_client.post(
+            login_url,
+            {'email': 'juan@example.com', 'password': 'testpass123'},
+            HTTP_X_CSRFTOKEN=csrf_client.cookies['csrftoken'].value,
+        )
+
+        self.assertRedirects(response, reverse('portfolio:dashboard'))
 
     def test_login_invalid_credentials_shows_error(self):
         resp = self.client.post(reverse('core:login'), {

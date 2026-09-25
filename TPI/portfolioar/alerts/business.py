@@ -3,6 +3,8 @@ from decimal import Decimal
 import re
 import unicodedata
 
+from django.db import transaction
+
 from portfolio.business import PortfolioManager
 
 from .data_access import (
@@ -87,6 +89,16 @@ class AlertManager:
 
         return create_alert(user_id, stock_id, name, is_active)
 
+    def create_alert_with_condition(
+        self, user_id, stock_id, name, indicator_id, operator, threshold_value, is_active=True
+    ):
+        """Crea una alerta utilizable: nunca persiste el contenedor sin su primera regla."""
+        with transaction.atomic():
+            alert = self.create_alert(user_id, stock_id, name, is_active)
+            condition = ConditionManager().create(indicator_id, operator, threshold_value)
+            self.add_condition(alert.id, condition.id)
+        return alert
+
     def update_alert(self, alert_id, name=None, is_active=None, stock_id=None):
         if not name:
             raise ValueError("El nombre es obligatorio")
@@ -98,7 +110,17 @@ class AlertManager:
     def add_condition(self, alert_id, condition_id):
         return add_condition_to_alert(alert_id, condition_id)
 
+    def create_and_add_condition(self, alert_id, indicator_id, operator, threshold_value):
+        """Agrega una regla nueva sin dejar una condición suelta si la asociación falla."""
+        with transaction.atomic():
+            condition = ConditionManager().create(indicator_id, operator, threshold_value)
+            self.add_condition(alert_id, condition.id)
+        return condition
+
     def remove_condition(self, alert_id, condition_id):
+        alert = get_alert_by_id(alert_id)
+        if len(get_conditions_by_alert(alert)) <= 1:
+            raise ValueError("Una alerta debe conservar al menos una condición")
         return remove_condition_from_alert(alert_id, condition_id)
 
     def evaluate_alert(self, alert, current_values, conditions=None):

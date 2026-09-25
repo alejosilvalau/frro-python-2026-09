@@ -14,7 +14,7 @@
                 <div class="alert alert-danger">{{ error }}</div>
                 {% endif %}
 
-                <form method="post">
+                <form id="login-form" method="post" action="{% url 'core:login' %}">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>

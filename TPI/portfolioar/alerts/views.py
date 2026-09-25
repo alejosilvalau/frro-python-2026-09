@@ -1,11 +1,24 @@
 from decimal import Decimal, InvalidOperation
 
+from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .business import AlertManager, IndicatorManager, ConditionManager
 from .models import AlertCondition
 from core.business import StockManager
+
+
+def _alert_form_context(**extra):
+    stock_manager = StockManager()
+    return {
+        'stocks': stock_manager.get_all(),
+        'stock_types': stock_manager.get_type_choices(),
+        'indicators': IndicatorManager().get_all(),
+        'operators': AlertCondition.OPERATOR_CHOICES,
+        **extra,
+    }
 
 
 @login_required
@@ -20,15 +33,17 @@ def alert_list(request):
 def alert_detail(request, alert_id):
     alert_manager = AlertManager()
     alert = alert_manager.get_alert(alert_id, request.user.id)
-    conditions = ConditionManager().get_all()
     assigned_conditions = alert_manager.get_alert_conditions(alert)
     triggers = alert_manager.get_alert_triggers(alert_id)
 
     return render(request, 'alerts/alert_detail.html', {
         'alert': alert,
-        'conditions': conditions,
         'assigned_conditions': assigned_conditions,
         'triggers': triggers,
+        'stocks': StockManager().get_all(),
+        'stock_types': StockManager().get_type_choices(),
+        'indicators': IndicatorManager().get_all(),
+        'operators': AlertCondition.OPERATOR_CHOICES,
     })
 
 
@@ -38,20 +53,22 @@ def alert_create(request):
         stock_id = request.POST.get('stock_id')
         name = request.POST.get('name')
         is_active = request.POST.get('is_active') == 'on'
+        indicator_id = request.POST.get('indicator_id')
+        operator = request.POST.get('operator')
 
         try:
             alert_manager = AlertManager()
-            alert_manager.create_alert(request.user.id, stock_id, name, is_active)
-            return redirect('alerts:alert_list')
-        except ValueError as e:
-            stocks = StockManager().get_all()
-            return render(request, 'alerts/alert_form.html', {
-                'error': str(e),
-                'stocks': stocks,
-            })
+            threshold_value = Decimal(request.POST.get('threshold_value'))
+            alert = alert_manager.create_alert_with_condition(
+                request.user.id, stock_id, name, indicator_id, operator, threshold_value, is_active
+            )
+            return redirect('alerts:alert_detail', alert_id=alert.id)
+        except (ValueError, InvalidOperation, TypeError, ObjectDoesNotExist) as error:
+            return render(request, 'alerts/alert_form.html', _alert_form_context(
+                error=str(error), form_data=request.POST
+            ))
 
-    stocks = StockManager().get_all()
-    return render(request, 'alerts/alert_form.html', {'stocks': stocks})
+    return render(request, 'alerts/alert_form.html', _alert_form_context(form_data={'is_active': 'on'}))
 
 
 @login_required
@@ -68,15 +85,10 @@ def alert_update(request, alert_id):
             alert_manager.update_alert(alert_id, name, is_active, stock_id)
             return redirect('alerts:alert_detail', alert_id=alert_id)
         except ValueError as e:
-            stocks = StockManager().get_all()
-            return render(request, 'alerts/alert_form.html', {
-                'alert': alert,
-                'stocks': stocks,
-                'error': str(e)
-            })
+            messages.error(request, str(e))
+            return redirect('alerts:alert_detail', alert_id=alert_id)
 
-    stocks = StockManager().get_all()
-    return render(request, 'alerts/alert_form.html', {'alert': alert, 'stocks': stocks})
+    return redirect('alerts:alert_detail', alert_id=alert_id)
 
 
 @login_required
@@ -89,16 +101,22 @@ def alert_delete(request, alert_id):
 
 
 @login_required
-def alert_add_condition(request, alert_id):
-    if request.method == 'POST':
-        condition_id = request.POST.get('condition_id')
-
-        alert_manager = AlertManager()
-        alert_manager.get_alert(alert_id, request.user.id)
-        alert_manager.add_condition(alert_id, condition_id)
-        return redirect('alerts:alert_detail', alert_id=alert_id)
-
+@require_POST
+def alert_create_condition(request, alert_id):
+    alert_manager = AlertManager()
+    alert_manager.get_alert(alert_id, request.user.id)
+    try:
+        threshold_value = Decimal(request.POST.get('threshold_value'))
+        alert_manager.create_and_add_condition(
+            alert_id,
+            request.POST.get('indicator_id'),
+            request.POST.get('operator'),
+            threshold_value,
+        )
+    except (ValueError, InvalidOperation, TypeError, ObjectDoesNotExist) as error:
+        messages.error(request, f'No se pudo crear la condición: {error}')
     return redirect('alerts:alert_detail', alert_id=alert_id)
+
 
 
 @login_required
@@ -106,7 +124,10 @@ def alert_add_condition(request, alert_id):
 def alert_remove_condition(request, alert_id, condition_id):
     alert_manager = AlertManager()
     alert_manager.get_alert(alert_id, request.user.id)
-    alert_manager.remove_condition(alert_id, condition_id)
+    try:
+        alert_manager.remove_condition(alert_id, condition_id)
+    except ValueError as error:
+        messages.error(request, str(error))
     return redirect('alerts:alert_detail', alert_id=alert_id)
 
 

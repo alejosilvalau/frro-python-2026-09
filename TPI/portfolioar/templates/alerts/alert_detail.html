@@ -2,13 +2,16 @@
 
 {% block title %}Detalle de Alerta - PortfolioAR{% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>{{ alert.name }}</h2>
+            <h2>Gestionar alerta</h2>
             <div>
-                <a href="{% url 'alerts:alert_update' alert.id %}" class="btn btn-warning">Editar</a>
                 <form method="post" action="{% url 'alerts:alert_delete' alert.id %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</button>
@@ -20,34 +23,42 @@
 </div>
 
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Acción</h5>
-                <h3 class="card-text">{{ alert.stock.ticker }}</h3>
-                <p class="card-text">{{ alert.stock.company_name }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Estado</h5>
-                <h3 class="card-text">
-                    {% if alert.is_active %}
-                    <span class="badge bg-success">Activa</span>
-                    {% else %}
-                    <span class="badge bg-secondary">Inactiva</span>
-                    {% endif %}
-                </h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Fecha Creación</h5>
-                <h3 class="card-text">{{ alert.created_at|date:"d/m/Y H:i" }}</h3>
+                <h5 class="card-title">Configuración</h5>
+                <form method="post" action="{% url 'alerts:alert_update' alert.id %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="stock_type_filter" class="form-label">Tipo de instrumento</label>
+                            <select class="form-select" id="stock_type_filter">
+                                <option value="">Todos los tipos</option>
+                                {% for value, label in stock_types %}<option value="{{ value }}" {% if alert.stock.tipo == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label for="stock_id" class="form-label">Instrumento</label>
+                            <select class="form-select searchable-select" id="stock_id" name="stock_id" required>
+                                {% for stock in stocks %}<option value="{{ stock.id }}" data-type="{{ stock.tipo }}" {% if alert.stock.id == stock.id %}selected{% endif %}>{{ stock.ticker }} - {{ stock.company_name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="name" class="form-label">Nombre</label>
+                            <input id="name" name="name" class="form-control" value="{{ alert.name }}" required>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <p class="mb-0 text-muted small">Creada el {{ alert.created_at|date:"d/m/Y H:i" }}</p>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if alert.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">Activa</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -78,10 +89,14 @@
                                 <td>{{ condition.operator }}</td>
                                 <td>{{ condition.threshold_value }}</td>
                                 <td>
-                                    <form method="post" action="{% url 'alerts:alert_remove_condition' alert.id condition.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta condición?')">Eliminar</button>
-                                    </form>
+                                    {% if assigned_conditions|length > 1 %}
+                                        <form method="post" action="{% url 'alerts:alert_remove_condition' alert.id condition.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar esta condición?')">Eliminar</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="text-muted small">Regla obligatoria</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -96,23 +111,29 @@
 
                 <hr>
 
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Agregar condición</h6>
-                    <a href="{% url 'alerts:condition_create' %}" class="btn btn-outline-primary btn-sm">Nueva condición</a>
-                </div>
-                <form method="post" action="{% url 'alerts:alert_add_condition' alert.id %}">
+                <h6>Agregar condición</h6>
+                <form method="post" action="{% url 'alerts:alert_create_condition' alert.id %}">
                     {% csrf_token %}
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <select class="form-select" name="condition_id" required>
-                                <option value="">Seleccionar condición...</option>
-                                {% for condition in conditions %}
-                                <option value="{{ condition.id }}">{{ condition }}</option>
-                                {% endfor %}
+                        <div class="col-md-4 mb-3">
+                            <label for="indicator_id" class="form-label">Indicador</label>
+                            <select class="form-select" id="indicator_id" name="indicator_id" required>
+                                <option value="">Seleccionar indicador...</option>
+                                {% for indicator in indicators %}<option value="{{ indicator.id }}">{{ indicator.name }}{% if indicator.period %} ({{ indicator.period }}){% endif %}</option>{% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <button type="submit" class="btn btn-primary">Agregar</button>
+                        <div class="col-md-3 mb-3">
+                            <label for="operator" class="form-label">Operador</label>
+                            <select class="form-select" id="operator" name="operator" required>
+                                {% for value, label in operators %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="threshold_value" class="form-label">Valor umbral</label>
+                            <input id="threshold_value" name="threshold_value" type="number" step="0.0001" class="form-control" required>
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Agregar</button>
                         </div>
                     </div>
                 </form>
@@ -156,4 +177,29 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const stockSelect = document.getElementById('stock_id');
+    const typeFilter = document.getElementById('stock_type_filter');
+    const options = Array.from(stockSelect.options).map(option => ({
+        value: option.value, text: option.text, type: option.dataset.type,
+    }));
+    const selectedStock = stockSelect.value;
+    const stockControl = new TomSelect(stockSelect, {
+        create: false, placeholder: 'Buscar por ticker o nombre', searchField: ['text'],
+    });
+    typeFilter.addEventListener('change', () => {
+        const type = typeFilter.value;
+        stockControl.clear(true);
+        stockControl.clearOptions();
+        stockControl.addOptions(options.filter(option => !type || option.type === type));
+        stockControl.refreshOptions(false);
+    });
+    stockControl.setValue(selectedStock, true);
+});
+</script>
 {% endblock %}

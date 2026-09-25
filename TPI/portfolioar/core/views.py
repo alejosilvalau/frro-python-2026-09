@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from .business import AuthManager
 
 
@@ -41,6 +42,7 @@ def register_view(request):
         try:
             auth_manager = AuthManager()
             auth_manager.register(first_name, last_name, email, password, phone, birthdate)
+            messages.success(request, 'Tu cuenta fue creada. Ya podés iniciar sesión.')
             return redirect('core:login')
         except ValueError as e:
             return render(request, 'core/register.html', {'error': str(e)})

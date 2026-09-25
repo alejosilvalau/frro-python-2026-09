@@ -1,1 +1,9 @@
 /* PortfolioAR - estilos personalizados */
+
+.position-table-responsive .dropdown-menu {
+    z-index: 1055;
+}
+
+main {
+    min-height: 0;
+}

@@ -171,6 +171,26 @@ class AlertManagerTest(TestCase):
                 self.user.id, self.stock.id, '', True
             )
 
+    def test_create_alert_with_initial_condition(self):
+        alert = self.alert_manager.create_alert_with_condition(
+            self.user.id, self.stock.id, 'Alerta completa', self.indicator.id, '>=', 65, True
+        )
+
+        self.assertEqual(alert.conditions.count(), 1)
+        self.assertEqual(alert.conditions.first().indicator, self.indicator)
+
+    def test_create_alert_with_invalid_condition_rolls_back(self):
+        alerts_before = Alert.objects.count()
+        conditions_before = AlertCondition.objects.count()
+
+        with self.assertRaises(ValueError):
+            self.alert_manager.create_alert_with_condition(
+                self.user.id, self.stock.id, 'Alerta inválida', self.indicator.id, '<>', 65, True
+            )
+
+        self.assertEqual(Alert.objects.count(), alerts_before)
+        self.assertEqual(AlertCondition.objects.count(), conditions_before)
+
     def test_evaluate_alert(self):
         self.alert.conditions.add(self.condition)
 
@@ -323,20 +343,30 @@ class AlertViewsTest(TestCase):
     def test_alert_create_get(self):
         resp = self.client.get(reverse('alerts:alert_create'))
         self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'stock_type_filter')
+        self.assertContains(resp, 'new TomSelect(stockSelect')
 
     def test_alert_create_post_success(self):
         resp = self.client.post(reverse('alerts:alert_create'), {
             'stock_id': self.stock.id,
             'name': 'Mi alerta RSI',
             'is_active': 'on',
+            'indicator_id': self.indicator.id,
+            'operator': '>',
+            'threshold_value': '70',
         })
-        self.assertRedirects(resp, reverse('alerts:alert_list'))
+        alert = Alert.objects.get(user=self.user)
+        self.assertRedirects(resp, reverse('alerts:alert_detail', args=[alert.id]))
         self.assertEqual(Alert.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(alert.conditions.count(), 1)
 
     def test_alert_create_post_missing_name_shows_error(self):
         resp = self.client.post(reverse('alerts:alert_create'), {
             'stock_id': self.stock.id,
             'name': '',
+            'indicator_id': self.indicator.id,
+            'operator': '>',
+            'threshold_value': '70',
         })
         self.assertEqual(resp.status_code, 200)
         self.assertIn('error', resp.context)
@@ -359,11 +389,11 @@ class AlertViewsTest(TestCase):
         self.assertEqual(alert.stock, other_stock)
         self.assertEqual(alert.name, 'Alerta MSFT')
 
-    def test_alert_detail_shows_available_conditions(self):
+    def test_alert_detail_shows_available_indicators_for_new_conditions(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
         resp = self.client.get(reverse('alerts:alert_detail', args=[alert.id]))
         self.assertEqual(resp.status_code, 200)
-        self.assertIn(self.condition, resp.context['conditions'])
+        self.assertIn(self.indicator, resp.context['indicators'])
 
     def test_alert_detail_shows_trigger_history(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
@@ -372,20 +402,35 @@ class AlertViewsTest(TestCase):
         self.assertContains(resp, 'Historial de Disparos')
         self.assertIn(trigger, resp.context['triggers'])
 
-    def test_alert_add_condition_attaches_existing_condition(self):
+    def test_alert_add_condition_creates_and_attaches_condition(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
-        resp = self.client.post(reverse('alerts:alert_add_condition', args=[alert.id]), {
-            'condition_id': self.condition.id,
+        resp = self.client.post(reverse('alerts:alert_create_condition', args=[alert.id]), {
+            'indicator_id': self.indicator.id,
+            'operator': '>=',
+            'threshold_value': '65.5',
         })
         self.assertRedirects(resp, reverse('alerts:alert_detail', args=[alert.id]))
-        self.assertIn(self.condition, alert.conditions.all())
+        self.assertTrue(alert.conditions.filter(operator='>=', threshold_value='65.5').exists())
 
-    def test_alert_remove_condition(self):
+    def test_alert_cannot_remove_its_only_condition(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
         alert.conditions.add(self.condition)
         resp = self.client.post(reverse('alerts:alert_remove_condition', args=[alert.id, self.condition.id]))
         self.assertRedirects(resp, reverse('alerts:alert_detail', args=[alert.id]))
-        self.assertNotIn(self.condition, alert.conditions.all())
+        self.assertIn(self.condition, alert.conditions.all())
+
+    def test_alert_detail_is_the_single_management_screen(self):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')
+        response = self.client.get(reverse('alerts:alert_detail', args=[alert.id]))
+
+        self.assertContains(response, 'Gestionar alerta')
+        self.assertContains(response, 'new TomSelect(stockSelect')
+        self.assertContains(response, 'Agregar condición')
+
+        list_response = self.client.get(reverse('alerts:alert_list'))
+        self.assertContains(list_response, 'Gestionar')
+        self.assertNotContains(list_response, '>Ver<')
+        self.assertNotContains(list_response, '>Editar<')
 
     def test_alert_delete(self):
         alert = Alert.objects.create(user=self.user, stock=self.stock, name='RSI Alert')

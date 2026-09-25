@@ -15,7 +15,7 @@
         <div class="card">
             <div class="card-body p-0">
                 {% if page.object_list %}
-                <div class="table-responsive">
+                <div class="table-responsive position-table-responsive">
                     <table class="table table-striped table-hover align-middle mb-0">
                         <thead class="table-dark">
                             <tr>
@@ -47,7 +47,7 @@
                                 <td class="text-end">U$D {{ summary.avg_cost_usd|floatformat:2 }}</td>
                                 <td>{{ position.opened_at|date:"d/m/Y" }}</td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="btn-group btn-group-sm position-actions" role="group">
                                         <a href="{% url 'portfolio:position_detail' position.id %}" class="btn btn-outline-info">Ver</a>
                                         <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                                             Operar
@@ -111,4 +111,20 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.addEventListener('load', () => {
+    if (!window.bootstrap) return;
+
+    document.querySelectorAll('.position-actions [data-bs-toggle="dropdown"]').forEach(button => {
+        new bootstrap.Dropdown(button, {
+            popperConfig(defaultConfig) {
+                return { ...defaultConfig, strategy: 'fixed' };
+            },
+        });
+    });
+});
+</script>
 {% endblock %}
