@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, time
+import logging
 import math
 from django.conf import settings
 from django.db import transaction
@@ -25,6 +26,7 @@ from core.business import StockManager
 
 
 PRICE_PRECISION = Decimal('0.0001')
+logger = logging.getLogger('portfolio.market_data')
 
 
 @dataclass(frozen=True)
@@ -290,8 +292,18 @@ class ExternalAPIs:
             price = get_stock_price_from_iol(ticker, mercado)
             if price is not None:
                 return Decimal(str(price))
+            logger.warning(
+                'IOL current price missing ticker=%s market=%s reason=ultimoPrecio_null',
+                ticker, mercado,
+            )
             return None
-        except Exception:
+        except Exception as error:
+            response = getattr(error, 'response', None)
+            status = getattr(response, 'status_code', None)
+            logger.warning(
+                'IOL current price unavailable ticker=%s market=%s error_type=%s http_status=%s',
+                ticker, mercado, type(error).__name__, status if status is not None else 'none',
+            )
             return None
 
 
@@ -566,22 +578,22 @@ class PortfolioManager:
             'inflation_is_annual_fallback': is_fallback,
         }
 
-    def calculate_portfolio_summary(self, user_id):
+    def calculate_portfolio_summary(self, user_id, cash_totals=None):
         positions = get_positions_by_user(user_id)
+        if cash_totals is None:
+            cash_totals = CashManager().get_totals(user_id)
 
         total_invested = Decimal('0')
-        # Base de rendimiento: incluye el capital ya realizado, sin alterar el valor vigente.
-        total_cost_basis = Decimal('0')
         total_current_value = Decimal('0')
         total_realized_pnl_ars = Decimal('0')
         open_position_count = 0
         sector_distribution = {}
         has_unavailable_price = False
+        unavailable_price_tickers = set()
 
         for position in positions:
             performance = self.calculate_position_performance(position)
             total_realized_pnl_ars += performance['realized_pnl_ars']
-            total_cost_basis += performance['invested_amount'] or Decimal('0')
 
             # Una posición cerrada no tiene invested_amount/current_value "vigentes": esa plata
             # ya está de vuelta en la liquidez (CashManager), sumarla acá la duplicaría en el
@@ -591,20 +603,38 @@ class PortfolioManager:
                 total_invested += performance['invested_amount'] or Decimal('0')
                 if performance['price_unavailable']:
                     has_unavailable_price = True
+                    unavailable_price_tickers.add(position.stock.ticker)
                 else:
                     total_current_value += performance['current_value'] or Decimal('0')
                 sector = position.stock.sector.name if position.stock.sector else 'Sin sector'
                 sector_distribution.setdefault(sector, Decimal('0'))
                 sector_distribution[sector] += performance['invested_amount']
 
+        ccl = Decimal(str(cash_totals['ccl']))
+        total_usd = Decimal(str(cash_totals['total_usd']))
+        available_usd = Decimal(str(cash_totals['available_usd']))
+        cash_valuation_unavailable = (total_usd != 0 or available_usd != 0) and ccl <= 0
+        total_contributed_ars_equivalent = (
+            None if cash_valuation_unavailable
+            else Decimal(str(cash_totals['total_ars'])) + total_usd * ccl
+        )
+
         if has_unavailable_price:
             total_current_value = None
+        if has_unavailable_price or cash_valuation_unavailable:
+            total_portfolio_value_ars = None
             profit_loss = None
             profit_loss_percentage = None
         else:
-            profit_loss = (total_current_value - total_invested) + total_realized_pnl_ars
+            total_portfolio_value_ars = (
+                total_current_value
+                + Decimal(str(cash_totals['available_ars']))
+                + available_usd * ccl
+            )
+            profit_loss = total_portfolio_value_ars - total_contributed_ars_equivalent
             profit_loss_percentage = (
-                profit_loss / total_cost_basis * 100 if total_cost_basis > 0 else None
+                profit_loss / total_contributed_ars_equivalent * 100
+                if total_contributed_ars_equivalent > 0 else None
             )
 
         total_sp500_return = self.external_apis.get_sp500_performance(
@@ -627,8 +657,9 @@ class PortfolioManager:
 
         return {
             'total_invested': total_invested,
-            'total_cost_basis': total_cost_basis,
+            'total_contributed_ars_equivalent': total_contributed_ars_equivalent,
             'total_current_value': total_current_value,
+            'total_portfolio_value_ars': total_portfolio_value_ars,
             'profit_loss': profit_loss,
             'profit_loss_percentage': profit_loss_percentage,
             'position_count': open_position_count,
@@ -638,6 +669,8 @@ class PortfolioManager:
             'real_return': real_return,
             'sector_distribution': sector_distribution,
             'total_realized_pnl_ars': total_realized_pnl_ars,
+            'unavailable_price_tickers': sorted(unavailable_price_tickers),
+            'cash_valuation_unavailable': cash_valuation_unavailable,
         }
 
     def get_technical_indicators(self, position):

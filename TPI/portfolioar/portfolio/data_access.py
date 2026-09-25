@@ -1,4 +1,5 @@
 import math
+import logging
 import os
 import time
 from datetime import timedelta
@@ -12,25 +13,45 @@ from core.data_access import get_user_by_id, get_stock_by_id, get_broker_by_id
 
 _IOL_BASE = 'https://api.invertironline.com'
 _iol_token = {'access_token': None, 'refresh_token': None, 'expires_at': 0}
+logger = logging.getLogger('portfolio.market_data')
+
+
+def _log_iol_failure(stage, error, response=None):
+    if response is None:
+        response = getattr(error, 'response', None)
+    status = getattr(response, 'status_code', None)
+    logger.warning(
+        'IOL request failed stage=%s error_type=%s http_status=%s',
+        stage, type(error).__name__, status if status is not None else 'none',
+    )
 
 
 def _iol_authenticate():
-    resp = requests.post(
-        f'{_IOL_BASE}/token',
-        data={
-            'grant_type': 'password',
-            'username': os.environ.get('IOL_USER', ''),
-            'password': os.environ.get('IOL_PASSWORD', ''),
-            'scope': 'APIv2',
-        },
-        timeout=15,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    _iol_token['access_token'] = data['access_token']
-    _iol_token['refresh_token'] = data['refresh_token']
-    _iol_token['expires_at'] = time.time() + data.get('expires_in', 1800) - 60
-    return _iol_token['access_token']
+    username = os.environ.get('IOL_USER', '')
+    password = os.environ.get('IOL_PASSWORD', '')
+    if not username or not password:
+        logger.warning('IOL authentication configuration missing_credentials=true')
+    response = None
+    try:
+        response = requests.post(
+            f'{_IOL_BASE}/token',
+            data={
+                'grant_type': 'password',
+                'username': username,
+                'password': password,
+                'scope': 'APIv2',
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
+        _iol_token['access_token'] = data['access_token']
+        _iol_token['refresh_token'] = data['refresh_token']
+        _iol_token['expires_at'] = time.time() + data.get('expires_in', 1800) - 60
+        return _iol_token['access_token']
+    except Exception as error:
+        _log_iol_failure('authenticate', error, response)
+        raise
 
 
 def _iol_refresh():
@@ -56,8 +77,8 @@ def _get_iol_token():
     if _iol_token['refresh_token']:
         try:
             return _iol_refresh()
-        except Exception:
-            pass
+        except Exception as error:
+            _log_iol_failure('refresh', error)
     return _iol_authenticate()
 
 
@@ -69,9 +90,14 @@ def get_stock_price_from_iol(ticker, mercado='bCBA'):
 def get_iol_quote(ticker, mercado='bCBA'):
     token = _get_iol_token()
     url = f'{_IOL_BASE}/api/v2/{mercado}/Titulos/{ticker}/Cotizacion'
-    resp = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
-    resp.raise_for_status()
-    return resp.json()
+    response = None
+    try:
+        response = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as error:
+        _log_iol_failure('quote', error, response)
+        raise
 
 
 def get_iol_daily_series(ticker, start_date, end_date_exclusive, mercado='bCBA'):

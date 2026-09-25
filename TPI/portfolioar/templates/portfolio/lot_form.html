@@ -1,11 +1,36 @@
-{% extends 'base.html' %}{% load static %}
+{% extends 'base.html' %}
+{% load static %}
+
 {% block title %}Nueva compra - PortfolioAR{% endblock %}
-{% block content %}<div class="row justify-content-center"><div class="col-md-8"><div class="card"><div class="card-header"><h4 class="mb-0">Nueva compra · {{ position.stock.ticker }}</h4></div><div class="card-body">
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-<form method="post" data-operation-pricing data-pricing-api="{% url 'portfolio:api_instrument_price' %}" data-stock-id="{{ position.stock.id }}" data-date-input="purchased_at">{% csrf_token %}
-<div class="mb-3"><label class="form-label fw-semibold">Pagar con</label><div class="d-flex gap-4"><label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="ARS" checked> ARS · ${{ available_ars|floatformat:2 }}</label><label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="USD"> USD · U$D {{ available_usd|floatformat:2 }}</label></div></div>
-<div class="row"><div class="col-md-4 mb-3"><label for="amount" class="form-label">Cantidad{% if position.stock.tipo == 'bono' or position.stock.tipo == 'letra' %} (VN){% endif %}</label><input id="amount" name="amount" type="number" min="1" class="form-control" required></div><div class="col-md-8 mb-3"><label for="purchased_at" class="form-label">Fecha de compra</label><input id="purchased_at" name="purchased_at" type="datetime-local" value="{{ default_operation_datetime|date:'Y-m-d\\TH:i' }}" class="form-control" required></div></div>
-{% include 'portfolio/operation_pricing_fields.html' %}
-<div class="mb-3"><label for="fees" class="form-label">Comisiones</label><input id="fees" name="fees" type="number" step="0.01" min="0" value="0" class="form-control"></div><button class="btn btn-primary w-100">Registrar compra</button></form>
-<div class="mt-3 text-center"><a href="{% url 'portfolio:position_detail' position.id %}">Volver a la posición</a></div></div></div></div></div>{% endblock %}
+
+{% block content %}
+<div class="operation-layout">
+    <section class="card operation-panel">
+        <div class="card-header"><h1 class="h4 mb-0">Nueva compra · {{ position.stock.ticker }}</h1></div>
+        <div class="card-body">
+            {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+            <form method="post" data-operation-pricing data-pricing-api="{% url 'portfolio:api_instrument_price' %}" data-stock-id="{{ position.stock.id }}" data-date-input="purchased_at">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Pagar con</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        <label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="ARS" checked> ARS · ${{ available_ars|floatformat:2 }}</label>
+                        <label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="USD"> USD · U$D {{ available_usd|floatformat:2 }}</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3"><label for="amount" class="form-label">Cantidad{% if position.stock.tipo == 'bono' or position.stock.tipo == 'letra' %} (VN){% endif %}</label><input id="amount" name="amount" type="number" min="1" class="form-control" required></div>
+                    <div class="col-md-8 mb-3"><label for="purchased_at" class="form-label">Fecha de compra</label><input id="purchased_at" name="purchased_at" type="datetime-local" value="{{ default_operation_datetime|date:'Y-m-d\\TH:i' }}" class="form-control" required></div>
+                </div>
+                {% include 'portfolio/operation_pricing_fields.html' %}
+                <div class="mb-3"><label for="fees" class="form-label">Comisiones</label><input id="fees" name="fees" type="number" step="0.01" min="0" value="0" class="form-control"></div>
+                <button class="btn btn-primary w-100">Registrar compra</button>
+            </form>
+            <div class="mt-3 text-center"><a href="{% url 'portfolio:position_detail' position.id %}">Volver a la posición</a></div>
+        </div>
+    </section>
+    <div class="operation-chart">{% include 'portfolio/price_chart.html' %}</div>
+</div>
+{% endblock %}
+
 {% block extra_js %}<script src="{% static 'js/operation_pricing.js' %}"></script>{% endblock %}

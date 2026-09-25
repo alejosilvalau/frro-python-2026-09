@@ -98,6 +98,27 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'market_data': {'format': '%(asctime)s %(levelname)s %(name)s %(message)s'},
+    },
+    'handlers': {
+        'market_data_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'market_data',
+        },
+    },
+    'loggers': {
+        'portfolio.market_data': {
+            'handlers': ['market_data_console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/auth/login/'

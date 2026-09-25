@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from requests.exceptions import HTTPError
 
 from django.db import IntegrityError, transaction
 from django.test import TestCase, Client
@@ -9,8 +11,8 @@ from django.urls import reverse
 
 from core.models import User, Sector, Broker, Stock
 from portfolio.models import Position, Lot, Sale, CashPosition, CashTransaction
-from portfolio.business import CclResult, QuoteResult, PortfolioManager, LotManager, SaleManager, CashManager
-from portfolio.data_access import get_position_for_update
+from portfolio.business import CclResult, QuoteResult, PortfolioManager, LotManager, SaleManager, CashManager, ExternalAPIs
+from portfolio.data_access import get_iol_quote, get_position_for_update
 from portfolio import fifo
 
 
@@ -37,6 +39,9 @@ class PortfolioTestBase(TestCase):
         )
         ccl_patcher.start()
         self.addCleanup(ccl_patcher.stop)
+        current_ccl_patcher = patch('portfolio.business.get_ccl_rate', return_value=Decimal('100'))
+        current_ccl_patcher.start()
+        self.addCleanup(current_ccl_patcher.stop)
 
         self.portfolio_manager = PortfolioManager()
         self.lot_manager = LotManager()
@@ -202,51 +207,37 @@ class PortfolioManagerTest(PortfolioTestBase):
         self.assertIn('sector_distribution', summary)
         self.assertIn('total_realized_pnl_ars', summary)
 
-    def test_summary_uses_closed_position_cost_basis_for_return_percentage(self):
-        closed_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
-        performance = {
-            'open_amount': 0, 'invested_amount': Decimal('1000'),
-            'realized_pnl_ars': Decimal('-100'), 'price_unavailable': False,
-        }
-        with patch('portfolio.business.get_positions_by_user', return_value=[closed_position]), \
-             patch.object(self.portfolio_manager, 'calculate_position_performance', return_value=performance), \
+    def test_fully_closed_position_return_uses_contributed_capital(self):
+        self.sale_manager.add_sale(self.position.id, 10, Decimal('14000'), datetime(2024, 3, 1))
+        with patch.object(self.portfolio_manager.external_apis, 'get_current_price', return_value=None), \
              patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
              patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
             summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
 
         self.assertEqual(summary['total_invested'], Decimal('0'))
-        self.assertEqual(summary['total_cost_basis'], Decimal('1000'))
-        self.assertEqual(summary['profit_loss_percentage'], Decimal('-10'))
+        self.assertEqual(summary['total_contributed_ars_equivalent'], Decimal('11000000'))
+        self.assertEqual(summary['profit_loss'], Decimal('-10000'))
+        self.assertEqual(summary['profit_loss_percentage'], Decimal('-10000') / Decimal('11000000') * 100)
 
-    def test_summary_combines_open_and_closed_cost_basis(self):
-        closed_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
-        open_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
-        closed = {
-            'open_amount': 0, 'invested_amount': Decimal('100'),
-            'realized_pnl_ars': Decimal('20'), 'price_unavailable': False,
-        }
-        opened = {
-            'open_amount': 1, 'invested_amount': Decimal('200'), 'current_value': Decimal('180'),
-            'realized_pnl_ars': Decimal('0'), 'price_unavailable': False,
-        }
-        with patch('portfolio.business.get_positions_by_user', return_value=[closed_position, open_position]), \
-             patch.object(self.portfolio_manager, 'calculate_position_performance', side_effect=[closed, opened]), \
+    def test_partial_sale_loss_does_not_divide_by_remaining_lot_cost(self):
+        self.sale_manager.add_sale(self.position.id, 9, Decimal('1000'), datetime(2024, 3, 1))
+        with patch.object(self.portfolio_manager.external_apis, 'get_current_price', return_value=Decimal('1000')), \
              patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
              patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
             summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
 
-        self.assertEqual(summary['total_invested'], Decimal('200'))
-        self.assertEqual(summary['total_cost_basis'], Decimal('300'))
-        self.assertEqual(summary['profit_loss'], Decimal('0'))
-        self.assertEqual(summary['profit_loss_percentage'], Decimal('0'))
+        self.assertEqual(summary['total_invested'], Decimal('15000'))
+        self.assertEqual(summary['profit_loss'], Decimal('-140000'))
+        self.assertEqual(summary['profit_loss_percentage'], Decimal('-140000') / Decimal('11000000') * 100)
+        self.assertGreater(summary['profit_loss_percentage'], Decimal('-100'))
 
     def test_empty_summary_keeps_return_percentage_unavailable(self):
-        with patch('portfolio.business.get_positions_by_user', return_value=[]), \
-             patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
+        empty_user = User.objects.create_user(email='empty@example.com', password='testpass123')
+        with patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
              patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
-            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+            summary = self.portfolio_manager.calculate_portfolio_summary(empty_user.id)
 
-        self.assertEqual(summary['total_cost_basis'], Decimal('0'))
+        self.assertEqual(summary['total_contributed_ars_equivalent'], Decimal('0'))
         self.assertIsNone(summary['profit_loss_percentage'])
 
     def test_get_technical_indicators(self):
@@ -477,6 +468,47 @@ class SaleFIFOTest(PortfolioTestBase):
         self.assertEqual(performance['realized_return_percentage'], expected_return)
         self.assertEqual(comparison['position_return_usd'], expected_return)
         self.assertEqual(comparison['alpha'], expected_return - Decimal('20'))
+
+
+class AccountReturnTest(PortfolioTestBase):
+    @patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos'))
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('30.83'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('16.65'))
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('35.70'))
+    def test_partial_sale_uses_account_contribution_and_keeps_comparisons(self, mock_price, mock_sp500, mock_inflation, mock_quote):
+        CashPosition.objects.filter(user=self.user).delete()
+        CashPosition.objects.create(user=self.user, currency='ARS', amount=Decimal('100000'))
+        position = self.portfolio_manager.add_position(
+            self.user.id, self.stock.id, self.broker.id, 1000, Decimal('35.70'), datetime(2024, 1, 23)
+        )
+        self.lot_manager.add_lot(position.id, 5, Decimal('38.30'), datetime(2024, 9, 16))
+        self.sale_manager.add_sale(position.id, 1005, Decimal('31.13'), datetime(2024, 9, 24))
+        self.lot_manager.add_lot(position.id, 100, Decimal('56.40'), datetime(2024, 9, 24, 16))
+
+        summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertEqual(summary['total_invested'], Decimal('5640'))
+        self.assertEqual(summary['total_current_value'], Decimal('3570'))
+        self.assertEqual(summary['total_portfolio_value_ars'], Decimal('93324.15'))
+        self.assertEqual(summary['total_contributed_ars_equivalent'], Decimal('100000'))
+        self.assertEqual(summary['profit_loss'], Decimal('-6675.85'))
+        self.assertEqual(summary['profit_loss_percentage'], Decimal('-6.67585'))
+        self.assertEqual(summary['alpha'], Decimal('-23.32585'))
+        self.assertEqual(
+            summary['real_return'],
+            ((Decimal('1') + Decimal('-6.67585') / 100) / (Decimal('1') + Decimal('30.83') / 100) - 1) * 100,
+        )
+
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('0'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('0'))
+    def test_usd_contribution_without_ccl_does_not_show_partial_valuation(self, mock_sp500, mock_inflation):
+        with patch('portfolio.business.get_ccl_rate', side_effect=ValueError('sin CCL')):
+            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertTrue(summary['cash_valuation_unavailable'])
+        self.assertIsNone(summary['total_portfolio_value_ars'])
+        self.assertIsNone(summary['profit_loss_percentage'])
+        self.assertIsNone(summary['alpha'])
 
 
 class WeightedDateTest(TestCase):
@@ -868,6 +900,20 @@ class DashboardAndListViewsTest(PortfolioTestBase):
         resp = self.client.get(reverse('portfolio:dashboard'))
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, 'Tu saldo disponible está en cero.')
+        self.assertNotContains(resp, 'No pudimos consultar cotizaciones:')
+
+    @patch('portfolio.business.get_historical_prices', return_value=None)
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('5'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('8'))
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=None)
+    def test_dashboard_warns_when_an_open_position_has_no_quote(self, *mocks):
+        response = self.client.get(reverse('portfolio:dashboard'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['summary']['unavailable_price_tickers'], ['AAPL'])
+        self.assertContains(response, 'No pudimos consultar cotizaciones: AAPL.')
+        self.assertContains(response, 'Por eso no están disponibles el valor actual')
+        self.assertContains(response, 'Reintentar')
 
     @patch('portfolio.business.get_historical_prices', return_value=None)
     @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('0'))
@@ -890,6 +936,32 @@ class DashboardAndListViewsTest(PortfolioTestBase):
         resp = self.client.get(reverse('portfolio:position_list'))
         self.assertContains(resp, 'position-table-responsive')
         self.assertContains(resp, "strategy: 'fixed'")
+
+
+class MarketDataLoggingTest(TestCase):
+    @patch('portfolio.business.get_stock_price_from_iol', side_effect=ValueError('secret-value'))
+    def test_current_price_failure_logs_without_exception_details(self, mock_price):
+        with self.assertLogs('portfolio.market_data', level='WARNING') as captured:
+            self.assertIsNone(ExternalAPIs.get_current_price('AGRO'))
+
+        self.assertIn('ticker=AGRO', captured.output[0])
+        self.assertIn('error_type=ValueError', captured.output[0])
+        self.assertNotIn('secret-value', captured.output[0])
+
+    @patch('portfolio.data_access._get_iol_token', return_value='secret-token')
+    @patch('portfolio.data_access.requests.get')
+    def test_quote_http_failure_logs_stage_and_status_without_token(self, mock_get, mock_token):
+        response = Mock(status_code=401)
+        response.raise_for_status.side_effect = HTTPError('secret-token', response=response)
+        mock_get.return_value = response
+
+        with self.assertLogs('portfolio.market_data', level='WARNING') as captured:
+            with self.assertRaises(HTTPError):
+                get_iol_quote('AGRO')
+
+        self.assertIn('stage=quote', captured.output[0])
+        self.assertIn('http_status=401', captured.output[0])
+        self.assertNotIn('secret-token', captured.output[0])
 
 
 class ApiInstrumentPriceViewTest(PortfolioTestBase):

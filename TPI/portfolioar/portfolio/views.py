@@ -47,8 +47,8 @@ def _parse_operation_datetime(value, field_name):
 def dashboard(request):
     portfolio_manager = PortfolioManager()
     cash_manager = CashManager()
-    summary = portfolio_manager.calculate_portfolio_summary(request.user.id)
     cash_totals = cash_manager.get_totals(request.user.id)
+    summary = portfolio_manager.calculate_portfolio_summary(request.user.id, cash_totals=cash_totals)
     positions = portfolio_manager.get_user_positions(request.user.id)
 
     positions_with_performance = []

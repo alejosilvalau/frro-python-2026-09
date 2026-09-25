@@ -141,8 +141,9 @@ class AuthViewsTest(TestCase):
     def test_home_shows_landing_when_anonymous(self):
         resp = self.client.get(reverse('core:home'))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'd-flex flex-column min-vh-100')
-        self.assertContains(resp, 'flex-grow-1')
+        self.assertContains(resp, 'class="app-shell"')
+        self.assertContains(resp, 'class="app-main auth-main"')
+        self.assertContains(resp, 'class="content-area"')
 
     def test_home_redirects_to_dashboard_when_authenticated(self):
         self.client.force_login(self.user)
