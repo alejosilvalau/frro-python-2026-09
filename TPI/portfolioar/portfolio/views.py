@@ -9,10 +9,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from .business import PortfolioManager, LotManager, SaleManager, CashManager
-from .data_access import get_stock_price_from_iol, get_ccl_rate
+from .business import (
+    PortfolioManager, LotManager, SaleManager, CashManager, MarketDataManager,
+    is_business_day, last_business_day, default_operation_datetime,
+)
 from core.business import StockManager, BrokerManager
-from core.data_access import get_stock_by_id
 
 
 def _parse_integer(value, field_name):
@@ -125,27 +126,36 @@ def position_create(request):
             purchase_currency = request.POST.get('purchase_currency', 'ARS')
             portfolio_manager = PortfolioManager()
             portfolio_manager.add_position(
-                request.user.id, stock_id, broker_id, amount, price, purchased_at, purchase_currency
+                request.user.id, stock_id, broker_id, amount, price, purchased_at, purchase_currency,
+                price_input_currency=request.POST.get('price_input_currency', purchase_currency),
+                client_ccl_rate=request.POST.get('client_ccl_rate'),
+                manual_ccl_rate=request.POST.get('manual_ccl_rate'),
             )
             return redirect('portfolio:position_list')
         except (ValueError, InvalidOperation, TypeError) as e:
-            stocks = StockManager().get_all()
+            stock_manager = StockManager()
+            stocks = stock_manager.get_all()
             brokers = BrokerManager().get_all()
             return render(request, 'portfolio/position_form.html', {
                 'error': str(e),
                 'stocks': stocks,
+                'stock_types': stock_manager.get_type_choices(),
                 'brokers': brokers,
                 'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
                 'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+                'default_operation_datetime': default_operation_datetime(),
             })
 
-    stocks = StockManager().get_all()
+    stock_manager = StockManager()
+    stocks = stock_manager.get_all()
     brokers = BrokerManager().get_all()
     return render(request, 'portfolio/position_form.html', {
         'stocks': stocks,
+        'stock_types': stock_manager.get_type_choices(),
         'brokers': brokers,
         'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
         'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+        'default_operation_datetime': default_operation_datetime(),
     })
 
 
@@ -175,7 +185,12 @@ def lot_create(request, position_id):
             purchase_currency = request.POST.get('purchase_currency', 'ARS')
             fees = _parse_decimal(request.POST.get('fees', '0') or '0', 'La comisión')
             lot_manager = LotManager()
-            lot_manager.add_lot(position_id, amount, price, purchased_at, purchase_currency, fees)
+            lot_manager.add_lot(
+                position_id, amount, price, purchased_at, purchase_currency, fees,
+                price_input_currency=request.POST.get('price_input_currency', purchase_currency),
+                client_ccl_rate=request.POST.get('client_ccl_rate'),
+                manual_ccl_rate=request.POST.get('manual_ccl_rate'),
+            )
             return redirect('portfolio:position_detail', position_id=position_id)
         except (ValueError, InvalidOperation, TypeError) as e:
             return render(request, 'portfolio/lot_form.html', {
@@ -183,12 +198,14 @@ def lot_create(request, position_id):
                 'error': str(e),
                 'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
                 'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+                'default_operation_datetime': default_operation_datetime(),
             })
 
     return render(request, 'portfolio/lot_form.html', {
         'position': position,
         'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
         'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+        'default_operation_datetime': default_operation_datetime(),
     })
 
 
@@ -217,18 +234,25 @@ def sale_create(request, position_id):
             sold_at = _parse_operation_datetime(request.POST.get('sold_at'), 'venta')
             sell_currency = request.POST.get('sell_currency', 'ARS')
             sale_manager = SaleManager()
-            sale_manager.add_sale(position_id, amount, price, sold_at, sell_currency)
+            sale_manager.add_sale(
+                position_id, amount, price, sold_at, sell_currency,
+                price_input_currency=request.POST.get('price_input_currency', sell_currency),
+                client_ccl_rate=request.POST.get('client_ccl_rate'),
+                manual_ccl_rate=request.POST.get('manual_ccl_rate'),
+            )
             return redirect('portfolio:position_detail', position_id=position_id)
         except (ValueError, InvalidOperation, TypeError) as e:
             return render(request, 'portfolio/sale_form.html', {
                 'position': position,
                 'open_summary': open_summary,
                 'error': str(e),
+                'default_operation_datetime': default_operation_datetime(),
             })
 
     return render(request, 'portfolio/sale_form.html', {
         'position': position,
         'open_summary': open_summary,
+        'default_operation_datetime': default_operation_datetime(),
     })
 
 
@@ -284,18 +308,63 @@ def cash_delete(request, cash_id):
 @login_required
 def api_instrument_price(request):
     stock_id = request.GET.get('stock_id')
-    if not stock_id:
-        return JsonResponse({'error': 'stock_id requerido'}, status=400)
+    raw_date = request.GET.get('fecha')
     try:
-        stock = get_stock_by_id(stock_id)
-        price_ars = get_stock_price_from_iol(stock.ticker)
-        ccl = get_ccl_rate()
-        price_usd = round(price_ars / ccl, 4) if ccl else None
+        if raw_date:
+            day = datetime.strptime(raw_date, '%Y-%m-%d').date()
+        else:
+            today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
+            day = last_business_day(today)
+        today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
+        if day > today:
+            return JsonResponse({'error': 'fecha_futura'}, status=400)
+        if not is_business_day(day):
+            return JsonResponse({
+                'error': 'dia_no_habil',
+                'last_business_day': last_business_day(day).isoformat(),
+            }, status=400)
+
+        manager = MarketDataManager()
+        ccl, ccl_error = manager.get_ccl_for_date(day)
+        quote = quote_error = None
+        quote_unit = 1
+        ticker = None
+        if stock_id:
+            stock = StockManager().get_by_id(stock_id)
+            ticker = stock.ticker
+            quote, quote_error = manager.get_quote_for_date(stock, day)
+            quote_unit = StockManager().get_quote_unit(stock)
+
+        prices = {'ARS': None, 'USD': None}
+        if quote and ccl:
+            if quote.currency == 'ARS':
+                prices['ARS'] = quote.price
+                prices['USD'] = (quote.price / ccl.rate).quantize(Decimal('0.0001'))
+            else:
+                prices['USD'] = quote.price
+                prices['ARS'] = (quote.price * ccl.rate).quantize(Decimal('0.0001'))
         return JsonResponse({
-            'ticker': stock.ticker,
-            'price_ars': price_ars,
-            'price_usd': price_usd,
-            'ccl': ccl,
+            'ticker': ticker,
+            'date': day.isoformat(),
+            'quote': None if quote is None else {
+                'price': str(quote.price), 'currency': quote.currency,
+                'quote_date': quote.quote_date.isoformat(), 'source': quote.source,
+                'observed_at': quote.observed_at,
+            },
+            'quote_error': quote_error,
+            'ccl': None if ccl is None else {
+                'rate': str(ccl.rate), 'ccl_date': ccl.ccl_date.isoformat(),
+                'source': ccl.source, 'side': ccl.side,
+            },
+            'ccl_error': ccl_error,
+            'prices': {currency: str(value) if value is not None else None for currency, value in prices.items()},
+            'quote_unit': quote_unit,
+            # Compatibilidad temporal con el autocompletado previo.
+            'price_ars': float(prices['ARS']) if prices['ARS'] is not None else None,
+            'price_usd': float(prices['USD']) if prices['USD'] is not None else None,
+            'ccl_rate': float(ccl.rate) if ccl else None,
         })
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=502)
+    except ValueError:
+        return JsonResponse({'error': 'fecha_invalida'}, status=400)
+    except Exception as error:
+        return JsonResponse({'error': str(error)}, status=502)

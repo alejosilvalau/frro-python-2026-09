@@ -46,14 +46,18 @@ def compute_sale_consumption(open_lots, amount_to_sell):
     return consumptions
 
 
-def compute_realized_pnl(consumptions, sell_price_local, sell_price_usd):
+def compute_realized_pnl(consumptions, sell_price_local, sell_price_usd, sell_quote_unit=1):
     """Devuelve (realized_pnl_ars, realized_pnl_usd, total_cost_local, total_cost_usd)."""
-    total_cost_local = sum(Decimal(str(c.cost_price_local)) * c.amount_consumed for c in consumptions)
-    total_cost_usd = sum(Decimal(str(c.cost_price_usd)) * c.amount_consumed for c in consumptions)
+    total_cost_local = sum(
+        Decimal(str(c.cost_price_local)) * c.amount_consumed / c.lot.quote_unit for c in consumptions
+    )
+    total_cost_usd = sum(
+        Decimal(str(c.cost_price_usd)) * c.amount_consumed / c.lot.quote_unit for c in consumptions
+    )
     total_amount = sum(c.amount_consumed for c in consumptions)
 
-    proceeds_local = Decimal(str(sell_price_local)) * total_amount
-    proceeds_usd = Decimal(str(sell_price_usd)) * total_amount
+    proceeds_local = Decimal(str(sell_price_local)) * total_amount / sell_quote_unit
+    proceeds_usd = Decimal(str(sell_price_usd)) * total_amount / sell_quote_unit
 
     realized_pnl_ars = proceeds_local - total_cost_local
     realized_pnl_usd = proceeds_usd - total_cost_usd

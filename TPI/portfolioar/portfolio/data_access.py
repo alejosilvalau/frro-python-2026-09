@@ -1,8 +1,10 @@
 import math
 import os
 import time
+from datetime import timedelta
 
 import requests
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 
 from .models import Position, Lot, Sale, SaleLot, CashPosition, CashTransaction
@@ -60,11 +62,64 @@ def _get_iol_token():
 
 
 def get_stock_price_from_iol(ticker, mercado='bCBA'):
+    quote = get_iol_quote(ticker, mercado)
+    return quote.get('ultimoPrecio')
+
+
+def get_iol_quote(ticker, mercado='bCBA'):
     token = _get_iol_token()
     url = f'{_IOL_BASE}/api/v2/{mercado}/Titulos/{ticker}/Cotizacion'
     resp = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
     resp.raise_for_status()
-    return resp.json().get('ultimoPrecio')
+    return resp.json()
+
+
+def get_iol_daily_series(ticker, start_date, end_date_exclusive, mercado='bCBA'):
+    cache_key = f'iol:daily:{mercado}:{ticker}:{start_date.isoformat()}:{end_date_exclusive.isoformat()}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    token = _get_iol_token()
+    url = (
+        f'{_IOL_BASE}/api/v2/{mercado}/Titulos/{ticker}/Cotizacion/seriehistorica/'
+        f'{start_date.isoformat()}/{end_date_exclusive.isoformat()}/sinAjustar'
+    )
+    response = requests.get(url, headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    cache.set(cache_key, data, timeout=24 * 60 * 60)
+    return data
+
+
+def get_historical_ccl(day):
+    cache_key = f'argentinadatos:ccl:{day.isoformat()}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    response = requests.get(
+        f'https://api.argentinadatos.com/v1/cotizaciones/dolares/contadoconliqui/{day:%Y/%m/%d}',
+        timeout=8,
+    )
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    data = response.json()
+    cache.set(cache_key, data, timeout=24 * 60 * 60)
+    return data
+
+
+def get_holidays(year):
+    cache_key = f'argentinadatos:holidays:{year}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    response = requests.get(f'https://api.argentinadatos.com/v1/feriados/{year}', timeout=8)
+    if response.status_code == 404:
+        return None
+    response.raise_for_status()
+    data = response.json()
+    cache.set(cache_key, data, timeout=7 * 24 * 60 * 60)
+    return data
 
 
 def get_ccl_rate():
@@ -165,9 +220,25 @@ def get_lot_for_update(lot_id):
     return Lot.objects.select_for_update().get(id=lot_id)
 
 
-def create_lot(position_id, amount, price_local, price_usd, purchased_at, purchase_currency='ARS', fees=0):
+def create_lot(
+    position_id, amount, price_local, price_usd, purchased_at, purchase_currency='ARS', fees=0,
+    pricing_snapshot=None,
+):
     position = Position.objects.get(id=position_id)
 
+    snapshot_fields = {}
+    if pricing_snapshot is not None:
+        snapshot_fields = {
+            'price_input_currency': pricing_snapshot.price_input_currency,
+            'price_origin': pricing_snapshot.price_origin,
+            'price_source': pricing_snapshot.price_source,
+            'price_quote_date': pricing_snapshot.price_quote_date,
+            'quote_currency': pricing_snapshot.quote_currency,
+            'quote_unit': pricing_snapshot.quote_unit,
+            'ccl_rate': pricing_snapshot.ccl_rate,
+            'ccl_date': pricing_snapshot.ccl_date,
+            'ccl_source': pricing_snapshot.ccl_source,
+        }
     lot = Lot(
         position=position,
         amount=amount,
@@ -176,6 +247,7 @@ def create_lot(position_id, amount, price_local, price_usd, purchased_at, purcha
         purchased_at=purchased_at,
         purchase_currency=purchase_currency,
         fees=fees,
+        **snapshot_fields,
     )
     lot.save()
     return lot
@@ -193,9 +265,25 @@ def get_sale_lots_by_position(position_id):
     return SaleLot.objects.filter(sale__position_id=position_id).select_related('lot', 'sale')
 
 
-def create_sale(position_id, amount, price_local, price_usd, sold_at, sell_currency, realized_pnl_ars, realized_pnl_usd):
+def create_sale(
+    position_id, amount, price_local, price_usd, sold_at, sell_currency, realized_pnl_ars,
+    realized_pnl_usd, pricing_snapshot=None,
+):
     position = Position.objects.get(id=position_id)
 
+    snapshot_fields = {}
+    if pricing_snapshot is not None:
+        snapshot_fields = {
+            'price_input_currency': pricing_snapshot.price_input_currency,
+            'price_origin': pricing_snapshot.price_origin,
+            'price_source': pricing_snapshot.price_source,
+            'price_quote_date': pricing_snapshot.price_quote_date,
+            'quote_currency': pricing_snapshot.quote_currency,
+            'quote_unit': pricing_snapshot.quote_unit,
+            'ccl_rate': pricing_snapshot.ccl_rate,
+            'ccl_date': pricing_snapshot.ccl_date,
+            'ccl_source': pricing_snapshot.ccl_source,
+        }
     sale = Sale(
         position=position,
         amount=amount,
@@ -205,6 +293,7 @@ def create_sale(position_id, amount, price_local, price_usd, sold_at, sell_curre
         sell_currency=sell_currency,
         realized_pnl_ars=realized_pnl_ars,
         realized_pnl_usd=realized_pnl_usd,
+        **snapshot_fields,
     )
     sale.save()
     return sale

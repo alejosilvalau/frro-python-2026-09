@@ -258,6 +258,7 @@
                                 <th>Moneda</th>
                                 <th>Precio (Local)</th>
                                 <th>Precio (USD)</th>
+                                <th>Snapshot</th>
                                 <th>Comisiones</th>
                                 <th>Fecha</th>
                                 <th>Acciones</th>
@@ -266,11 +267,12 @@
                         <tbody>
                             {% for lot, remaining in lots_with_remaining %}
                             <tr>
-                                <td>{{ lot.amount }}</td>
+                                <td>{{ lot.amount }}{% if lot.quote_unit == 100 %} VN{% endif %}</td>
                                 <td>{{ remaining }}</td>
                                 <td>{{ lot.purchase_currency }}</td>
-                                <td>${{ lot.price_local|floatformat:2 }}</td>
+                                <td>${{ lot.price_local|floatformat:2 }}{% if lot.quote_unit == 100 %} c/100 VN{% endif %}</td>
                                 <td>${{ lot.price_usd|floatformat:2 }}</td>
+                                <td><small>{% if lot.price_origin == 'legacy' %}Registro previo · CCL implícito{% else %}{{ lot.get_price_source_display }} · {{ lot.price_quote_date|date:"d/m/Y" }}<br>CCL {{ lot.ccl_rate|floatformat:4 }} · {{ lot.get_ccl_source_display }}{% endif %}</small></td>
                                 <td>${{ lot.fees|floatformat:2 }}</td>
                                 <td>{{ lot.purchased_at|date:"d/m/Y H:i" }}</td>
                                 <td>
@@ -312,6 +314,7 @@
                                 <th>Moneda</th>
                                 <th>Precio (Local)</th>
                                 <th>Precio (USD)</th>
+                                <th>Snapshot</th>
                                 <th>P&amp;L Realizado (ARS)</th>
                                 <th>P&amp;L Realizado (USD)</th>
                             </tr>
@@ -319,11 +322,12 @@
                         <tbody>
                             {% for sale in sales %}
                             <tr>
-                                <td>{{ sale.amount }}</td>
+                                <td>{{ sale.amount }}{% if sale.quote_unit == 100 %} VN{% endif %}</td>
                                 <td>{{ sale.sold_at|date:"d/m/Y H:i" }}</td>
                                 <td>{{ sale.sell_currency }}</td>
-                                <td>${{ sale.price_local|floatformat:2 }}</td>
+                                <td>${{ sale.price_local|floatformat:2 }}{% if sale.quote_unit == 100 %} c/100 VN{% endif %}</td>
                                 <td>${{ sale.price_usd|floatformat:2 }}</td>
+                                <td><small>{% if sale.price_origin == 'legacy' %}Registro previo · CCL implícito{% else %}{{ sale.get_price_source_display }} · {{ sale.price_quote_date|date:"d/m/Y" }}<br>CCL {{ sale.ccl_rate|floatformat:4 }} · {{ sale.get_ccl_source_display }}{% endif %}</small></td>
                                 <td class="{% if sale.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">${{ sale.realized_pnl_ars|floatformat:2 }}</td>
                                 <td class="{% if sale.realized_pnl_usd >= 0 %}text-success{% else %}text-danger{% endif %}">U$D {{ sale.realized_pnl_usd|floatformat:2 }}</td>
                             </tr>

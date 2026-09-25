@@ -75,6 +75,10 @@ def get_all_stocks():
     return Stock.objects.all()
 
 
+def get_stock_type_choices():
+    return Stock.TIPO_CHOICES
+
+
 def get_stock_by_id(stock_id):
     return Stock.objects.get(id=stock_id)
 

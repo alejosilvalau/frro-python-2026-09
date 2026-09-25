@@ -3,7 +3,7 @@ from .data_access import (
     authenticate_user, login_user, logout_user,
     get_all_sectors, get_sector_by_id, create_sector,
     get_all_brokers, get_broker_by_id, create_broker,
-    get_all_stocks, get_stock_by_id, get_stock_by_ticker, create_stock,
+    get_all_stocks, get_stock_type_choices, get_stock_by_id, get_stock_by_ticker, create_stock,
     get_stock_by_sector
 )
 
@@ -67,6 +67,9 @@ class StockManager:
     def get_all(self):
         return get_all_stocks()
 
+    def get_type_choices(self):
+        return get_stock_type_choices()
+
     def get_by_id(self, stock_id):
         return get_stock_by_id(stock_id)
 
@@ -78,3 +81,6 @@ class StockManager:
 
     def get_by_sector(self, sector_id):
         return get_stock_by_sector(sector_id)
+
+    def get_quote_unit(self, stock):
+        return 100 if stock.tipo in ('bono', 'letra') else 1

@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from core.models import User, Sector, Broker, Stock
 from portfolio.models import Position, Lot, Sale, CashPosition, CashTransaction
-from portfolio.business import PortfolioManager, LotManager, SaleManager, CashManager
+from portfolio.business import CclResult, QuoteResult, PortfolioManager, LotManager, SaleManager, CashManager
 from portfolio.data_access import get_position_for_update
 from portfolio import fifo
 
@@ -31,7 +31,10 @@ class PortfolioTestBase(TestCase):
         self.broker = Broker.objects.create(name='IOL')
         CashPosition.objects.create(user=self.user, currency='ARS', amount=10_000_000)
         CashPosition.objects.create(user=self.user, currency='USD', amount=10_000)
-        ccl_patcher = patch('portfolio.business.get_ccl_rate', return_value=100.0)
+        ccl_patcher = patch(
+            'portfolio.business.MarketDataManager.get_ccl_for_date',
+            side_effect=lambda day: (CclResult(Decimal('100'), day), None),
+        )
         ccl_patcher.start()
         self.addCleanup(ccl_patcher.stop)
 
@@ -89,17 +92,15 @@ class LotModelTest(PortfolioTestBase):
                 self.position.id, 1_000_000, 16000.00, datetime(2024, 1, 16)
             )
 
-    @patch('portfolio.business.get_ccl_rate', return_value=1000)
-    def test_lot_prices_are_derived_from_the_selected_currency(self, mock_ccl):
+    def test_lot_prices_are_derived_from_the_selected_currency(self):
         lot = self.lot_manager.add_lot(
-            self.position.id, 1, Decimal('2500'), datetime(2024, 1, 20), 'ARS'
+            self.position.id, 1, Decimal('2500'), datetime(2024, 1, 19), 'ARS'
         )
         self.assertEqual(lot.price_local, Decimal('2500'))
-        self.assertEqual(lot.price_usd, Decimal('2.5'))
+        self.assertEqual(lot.price_usd, Decimal('25'))
 
-    @patch('portfolio.business.get_ccl_rate', side_effect=Exception('CCL no disponible'))
-    def test_lot_creation_fails_when_ccl_is_unavailable(self, mock_ccl):
-        with self.assertRaisesRegex(ValueError, 'tipo de cambio'):
+    def test_lot_rejects_non_business_day(self):
+        with self.assertRaisesRegex(ValueError, 'no es día hábil'):
             self.lot_manager.add_lot(
                 self.position.id, 1, Decimal('2500'), datetime(2024, 1, 20), 'ARS'
             )
@@ -328,21 +329,17 @@ class SaleFIFOTest(PortfolioTestBase):
             sale=sale, tipo='venta', amount=125000
         ).exists())
 
-    @patch('portfolio.business.get_ccl_rate', return_value=1000)
-    def test_sale_prices_are_derived_from_the_selected_currency(self, mock_ccl):
+    def test_sale_prices_are_derived_from_the_selected_currency(self):
         sale = self.sale_manager.add_sale(
             self.position.id, 1, Decimal('25'), datetime(2024, 3, 1), 'USD'
         )
 
         self.assertEqual(sale.price_usd, Decimal('25'))
-        self.assertEqual(sale.price_local, Decimal('25000'))
+        self.assertEqual(sale.price_local, Decimal('2500'))
 
-    @patch('portfolio.business.get_ccl_rate', side_effect=Exception('CCL no disponible'))
-    def test_sale_creation_fails_when_ccl_is_unavailable(self, mock_ccl):
-        with self.assertRaisesRegex(ValueError, 'tipo de cambio'):
-            self.sale_manager.add_sale(
-                self.position.id, 1, Decimal('25000'), datetime(2024, 3, 1), 'ARS'
-            )
+    def test_sale_accepts_historical_ccl(self):
+        sale = self.sale_manager.add_sale(self.position.id, 1, Decimal('25000'), datetime(2024, 3, 1), 'ARS')
+        self.assertEqual(sale.ccl_source, 'argentinadatos')
 
     def test_selling_all_open_lots_closes_position(self):
         self.sale_manager.add_sale(self.position.id, 20, 25000.00, datetime(2024, 3, 1))
@@ -457,6 +454,16 @@ class PositionCreateViewTest(PortfolioTestBase):
         self.assertIn('available_ars', resp.context)
         self.assertIn('available_usd', resp.context)
 
+    def test_get_exposes_stock_types_and_searchable_selects(self):
+        response = self.client.get(reverse('portfolio:position_create'))
+
+        self.assertIn(('accion', 'Acción'), response.context['stock_types'])
+        self.assertContains(response, 'id="stock_type_filter"')
+        self.assertContains(response, 'data-operation-pricing')
+        self.assertContains(response, 'new TomSelect(stockSelect')
+        self.assertContains(response, "new TomSelect('#broker_id'")
+        self.assertContains(response, 'data-type="accion"')
+
     def test_post_valid_creates_position_and_debits_cash(self):
         resp = self.client.post(reverse('portfolio:position_create'), self.valid_data)
         self.assertRedirects(resp, reverse('portfolio:position_list'))
@@ -537,10 +544,12 @@ class PositionDetailViewTest(PortfolioTestBase):
     @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('8'))
     def test_detail_calculates_performance_once_for_both_comparisons(self, mock_sp500, mock_indec, mock_indicators):
         performance = {
+            'open_amount': 10,
             'comparison_start': datetime(2024, 1, 1),
             'comparison_end': datetime(2024, 2, 1),
             'profit_loss_percentage': Decimal('10'),
             'profit_loss_percentage_usd': Decimal('8'),
+            'realized_return_percentage': None,
         }
         with patch(
             'portfolio.views.PortfolioManager.calculate_position_performance',
@@ -692,6 +701,17 @@ class CashViewsTest(PortfolioTestBase):
     def test_cash_list_renders(self):
         resp = self.client.get(reverse('portfolio:cash_list'))
         self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Nueva entrada')
+        self.assertEqual(resp.content.decode().count(reverse('portfolio:cash_create')), 1)
+
+    def test_cash_list_empty_state_has_only_its_central_cta(self):
+        CashPosition.objects.filter(user=self.user).delete()
+
+        response = self.client.get(reverse('portfolio:cash_list'))
+
+        self.assertContains(response, 'Agregar liquidez')
+        self.assertNotContains(response, 'Nueva entrada')
+        self.assertEqual(response.content.decode().count(reverse('portfolio:cash_create')), 1)
 
     def test_cash_create_post_valid(self):
         resp = self.client.post(reverse('portfolio:cash_create'), {
@@ -752,11 +772,29 @@ class DashboardAndListViewsTest(PortfolioTestBase):
     def test_dashboard_renders(self, *mocks):
         resp = self.client.get(reverse('portfolio:dashboard'))
         self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'Tu saldo disponible está en cero.')
+
+    @patch('portfolio.business.get_historical_prices', return_value=None)
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('0'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('0'))
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('1100'))
+    def test_dashboard_suggests_adding_cash_when_none_is_available(self, *mocks):
+        CashPosition.objects.filter(user=self.user).update(amount=0)
+
+        response = self.client.get(reverse('portfolio:dashboard'))
+
+        self.assertContains(response, 'Tu saldo disponible está en cero.')
+        self.assertContains(response, reverse('portfolio:cash_create'))
 
     def test_position_list_renders_with_pagination_context(self):
         resp = self.client.get(reverse('portfolio:position_list'))
         self.assertEqual(resp.status_code, 200)
         self.assertIn('page', resp.context)
+
+    def test_position_list_configures_viewport_dropdowns(self):
+        resp = self.client.get(reverse('portfolio:position_list'))
+        self.assertContains(resp, 'position-table-responsive')
+        self.assertContains(resp, "strategy: 'fixed'")
 
 
 class ApiInstrumentPriceViewTest(PortfolioTestBase):
@@ -765,23 +803,35 @@ class ApiInstrumentPriceViewTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
 
-    def test_requires_stock_id(self):
-        resp = self.client.get(reverse('portfolio:api_instrument_price'))
-        self.assertEqual(resp.status_code, 400)
+    @patch('portfolio.views.is_business_day', return_value=True)
+    @patch('portfolio.views.MarketDataManager.get_ccl_for_date')
+    def test_allows_ccl_only_request(self, mock_ccl, mock_business_day):
+        mock_ccl.return_value = (CclResult(Decimal('1000'), datetime(2024, 1, 19).date()), None)
+        resp = self.client.get(reverse('portfolio:api_instrument_price'), {'fecha': '2024-01-19'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.json()['ticker'])
 
-    @patch('portfolio.views.get_ccl_rate', return_value=1000.0)
-    @patch('portfolio.views.get_stock_price_from_iol', return_value=5000.0)
-    def test_success_returns_prices(self, mock_iol, mock_ccl):
-        resp = self.client.get(reverse('portfolio:api_instrument_price'), {'stock_id': self.stock.id})
+    @patch('portfolio.views.is_business_day', return_value=True)
+    @patch('portfolio.views.MarketDataManager.get_ccl_for_date')
+    @patch('portfolio.views.MarketDataManager.get_quote_for_date')
+    def test_success_returns_prices(self, mock_quote, mock_ccl, mock_business_day):
+        day = datetime(2024, 1, 19).date()
+        mock_quote.return_value = (QuoteResult(Decimal('5000'), 'ARS', day, 'iol_daily_close'), None)
+        mock_ccl.return_value = (CclResult(Decimal('1000'), day), None)
+        resp = self.client.get(reverse('portfolio:api_instrument_price'), {'stock_id': self.stock.id, 'fecha': '2024-01-19'})
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data['price_ars'], 5000.0)
         self.assertEqual(data['price_usd'], 5.0)
 
-    @patch('portfolio.views.get_stock_price_from_iol', side_effect=Exception('IOL down'))
-    def test_iol_failure_returns_502(self, mock_iol):
-        resp = self.client.get(reverse('portfolio:api_instrument_price'), {'stock_id': self.stock.id})
-        self.assertEqual(resp.status_code, 502)
+    @patch('portfolio.views.is_business_day', return_value=True)
+    @patch('portfolio.views.MarketDataManager.get_ccl_for_date')
+    @patch('portfolio.views.MarketDataManager.get_quote_for_date', return_value=(None, 'fuente_no_disponible'))
+    def test_iol_failure_is_reported_without_blocking_manual_price(self, mock_quote, mock_ccl, mock_business_day):
+        mock_ccl.return_value = (CclResult(Decimal('1000'), datetime(2024, 1, 19).date()), None)
+        resp = self.client.get(reverse('portfolio:api_instrument_price'), {'stock_id': self.stock.id, 'fecha': '2024-01-19'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['quote_error'], 'fuente_no_disponible')
 
 
 class Sp500ReturnDataAccessTest(TestCase):

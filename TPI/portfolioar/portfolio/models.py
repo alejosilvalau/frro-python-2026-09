@@ -9,6 +9,20 @@ CASH_TRANSACTION_TYPE_CHOICES = [
     ('reembolso', 'Reembolso por eliminación'),
 ]
 
+PRICE_INPUT_CURRENCY_CHOICES = [('ARS', 'Pesos (ARS)'), ('USD', 'Dólares (USD)')]
+PRICE_ORIGIN_CHOICES = [('auto', 'Automático'), ('manual', 'Manual'), ('legacy', 'Registro previo')]
+PRICE_SOURCE_CHOICES = [
+    ('iol_realtime', 'IOL tiempo real'),
+    ('iol_daily_close', 'IOL cierre diario'),
+    ('manual', 'Manual'),
+    ('legacy', 'Registro previo'),
+]
+CCL_SOURCE_CHOICES = [
+    ('argentinadatos', 'ArgentinaDatos'),
+    ('manual', 'Manual'),
+    ('legacy_implied', 'CCL implícito de registro previo'),
+]
+
 
 class Position(models.Model):
     STATUS_CHOICES = [('open', 'Abierta'), ('closed', 'Cerrada')]
@@ -39,6 +53,15 @@ class Lot(models.Model):
     purchased_at = models.DateTimeField()
     purchase_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='ARS')
     fees = models.DecimalField(max_digits=15, decimal_places=4, default=0)
+    price_input_currency = models.CharField(max_length=3, choices=PRICE_INPUT_CURRENCY_CHOICES, default='ARS')
+    price_origin = models.CharField(max_length=6, choices=PRICE_ORIGIN_CHOICES, default='legacy')
+    price_source = models.CharField(max_length=20, choices=PRICE_SOURCE_CHOICES, default='legacy')
+    price_quote_date = models.DateField(null=True, blank=True)
+    quote_currency = models.CharField(max_length=3, choices=PRICE_INPUT_CURRENCY_CHOICES, null=True, blank=True)
+    quote_unit = models.PositiveSmallIntegerField(default=1)
+    ccl_rate = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
+    ccl_date = models.DateField(null=True, blank=True)
+    ccl_source = models.CharField(max_length=20, choices=CCL_SOURCE_CHOICES, default='legacy_implied')
 
     class Meta:
         db_table = 'lot'
@@ -49,6 +72,12 @@ class Lot(models.Model):
             models.CheckConstraint(condition=Q(amount__gt=0), name='lot_amount_positive'),
             models.CheckConstraint(condition=Q(price_local__gt=0), name='lot_price_local_positive'),
             models.CheckConstraint(condition=Q(price_usd__gt=0), name='lot_price_usd_positive'),
+            models.CheckConstraint(condition=Q(quote_unit__in=[1, 100]), name='lot_quote_unit_valid'),
+            models.CheckConstraint(condition=Q(ccl_rate__isnull=True) | Q(ccl_rate__gt=0), name='lot_ccl_positive'),
+            models.CheckConstraint(
+                condition=Q(price_origin='legacy') | Q(ccl_rate__isnull=False),
+                name='lot_nonlegacy_requires_ccl',
+            ),
         ]
 
     def __str__(self):
@@ -66,6 +95,15 @@ class Sale(models.Model):
     sell_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='ARS')
     realized_pnl_ars = models.DecimalField(max_digits=18, decimal_places=4)
     realized_pnl_usd = models.DecimalField(max_digits=18, decimal_places=4)
+    price_input_currency = models.CharField(max_length=3, choices=PRICE_INPUT_CURRENCY_CHOICES, default='ARS')
+    price_origin = models.CharField(max_length=6, choices=PRICE_ORIGIN_CHOICES, default='legacy')
+    price_source = models.CharField(max_length=20, choices=PRICE_SOURCE_CHOICES, default='legacy')
+    price_quote_date = models.DateField(null=True, blank=True)
+    quote_currency = models.CharField(max_length=3, choices=PRICE_INPUT_CURRENCY_CHOICES, null=True, blank=True)
+    quote_unit = models.PositiveSmallIntegerField(default=1)
+    ccl_rate = models.DecimalField(max_digits=15, decimal_places=4, null=True, blank=True)
+    ccl_date = models.DateField(null=True, blank=True)
+    ccl_source = models.CharField(max_length=20, choices=CCL_SOURCE_CHOICES, default='legacy_implied')
 
     class Meta:
         db_table = 'sale'
@@ -76,6 +114,12 @@ class Sale(models.Model):
             models.CheckConstraint(condition=Q(amount__gt=0), name='sale_amount_positive'),
             models.CheckConstraint(condition=Q(price_local__gt=0), name='sale_price_local_positive'),
             models.CheckConstraint(condition=Q(price_usd__gt=0), name='sale_price_usd_positive'),
+            models.CheckConstraint(condition=Q(quote_unit__in=[1, 100]), name='sale_quote_unit_valid'),
+            models.CheckConstraint(condition=Q(ccl_rate__isnull=True) | Q(ccl_rate__gt=0), name='sale_ccl_positive'),
+            models.CheckConstraint(
+                condition=Q(price_origin='legacy') | Q(ccl_rate__isnull=False),
+                name='sale_nonlegacy_requires_ccl',
+            ),
         ]
 
     def __str__(self):
