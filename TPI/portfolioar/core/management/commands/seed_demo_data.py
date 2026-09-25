@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
+from core.models import Stock, Broker
 from portfolio.models import CashPosition
 
 DEMO_EMAIL = 'demo@test.com'
@@ -14,6 +15,9 @@ class Command(BaseCommand):
     help = 'Crea (o resetea) un usuario de demo con liquidez inicial para desarrollo local. Idempotente.'
 
     def handle(self, *args, **options):
+        if not Stock.objects.exists() and not Broker.objects.exists():
+            call_command('seed_instruments_from_iol', stdout=self.stdout)
+
         User = get_user_model()
         user, created = User.objects.get_or_create(
             email=DEMO_EMAIL,
