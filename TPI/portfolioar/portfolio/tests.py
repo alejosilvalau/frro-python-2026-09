@@ -139,6 +139,54 @@ class PortfolioManagerTest(PortfolioTestBase):
         self.assertIn('inflation', comparison)
         self.assertIn('real_return', comparison)
 
+    def test_sp500_uses_annual_fallback_for_same_day_position(self):
+        end = datetime(2024, 6, 5, 16, 0)
+        performance = {
+            'comparison_start': datetime(2024, 6, 5, 10, 0),
+            'comparison_end': end,
+            'profit_loss_percentage_usd': Decimal('5'),
+        }
+        with patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=Decimal('4')) as mock:
+            result = self.portfolio_manager.compare_with_sp500(self.position, performance)
+
+        mock.assert_called_once_with((end - timedelta(days=365)).date(), end.date())
+        self.assertTrue(result['sp500_is_annual_fallback'])
+
+    def test_sp500_uses_exact_window_when_crossing_midnight(self):
+        start = datetime(2024, 6, 5, 23, 59)
+        end = datetime(2024, 6, 6, 0, 1)
+        performance = {'comparison_start': start, 'comparison_end': end, 'profit_loss_percentage_usd': Decimal('5')}
+        with patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=Decimal('4')) as mock:
+            result = self.portfolio_manager.compare_with_sp500(self.position, performance)
+
+        mock.assert_called_once_with(start.date(), end.date())
+        self.assertFalse(result['sp500_is_annual_fallback'])
+
+    def test_inflation_uses_annual_fallback_inside_same_month(self):
+        end = datetime(2024, 6, 20, 16, 0)
+        performance = {
+            'comparison_start': datetime(2024, 6, 1, 10, 0), 'comparison_end': end,
+            'open_amount': 1, 'profit_loss_percentage': Decimal('5'), 'realized_return_percentage': None,
+        }
+        with patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=Decimal('4')) as mock:
+            result = self.portfolio_manager.compare_with_inflation(self.position, performance)
+
+        mock.assert_called_once_with((end - timedelta(days=365)).date(), end.date())
+        self.assertTrue(result['inflation_is_annual_fallback'])
+
+    def test_inflation_uses_exact_window_when_month_changes_year(self):
+        start = datetime(2025, 12, 31, 10, 0)
+        end = datetime(2026, 1, 1, 16, 0)
+        performance = {
+            'comparison_start': start, 'comparison_end': end,
+            'open_amount': 1, 'profit_loss_percentage': Decimal('5'), 'realized_return_percentage': None,
+        }
+        with patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=Decimal('4')) as mock:
+            result = self.portfolio_manager.compare_with_inflation(self.position, performance)
+
+        mock.assert_called_once_with(start.date(), end.date())
+        self.assertFalse(result['inflation_is_annual_fallback'])
+
     def test_calculate_portfolio_summary(self):
         summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
 
@@ -153,6 +201,53 @@ class PortfolioManagerTest(PortfolioTestBase):
         self.assertIn('real_return', summary)
         self.assertIn('sector_distribution', summary)
         self.assertIn('total_realized_pnl_ars', summary)
+
+    def test_summary_uses_closed_position_cost_basis_for_return_percentage(self):
+        closed_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
+        performance = {
+            'open_amount': 0, 'invested_amount': Decimal('1000'),
+            'realized_pnl_ars': Decimal('-100'), 'price_unavailable': False,
+        }
+        with patch('portfolio.business.get_positions_by_user', return_value=[closed_position]), \
+             patch.object(self.portfolio_manager, 'calculate_position_performance', return_value=performance), \
+             patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
+             patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
+            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertEqual(summary['total_invested'], Decimal('0'))
+        self.assertEqual(summary['total_cost_basis'], Decimal('1000'))
+        self.assertEqual(summary['profit_loss_percentage'], Decimal('-10'))
+
+    def test_summary_combines_open_and_closed_cost_basis(self):
+        closed_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
+        open_position = SimpleNamespace(stock=SimpleNamespace(sector=None))
+        closed = {
+            'open_amount': 0, 'invested_amount': Decimal('100'),
+            'realized_pnl_ars': Decimal('20'), 'price_unavailable': False,
+        }
+        opened = {
+            'open_amount': 1, 'invested_amount': Decimal('200'), 'current_value': Decimal('180'),
+            'realized_pnl_ars': Decimal('0'), 'price_unavailable': False,
+        }
+        with patch('portfolio.business.get_positions_by_user', return_value=[closed_position, open_position]), \
+             patch.object(self.portfolio_manager, 'calculate_position_performance', side_effect=[closed, opened]), \
+             patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
+             patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
+            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertEqual(summary['total_invested'], Decimal('200'))
+        self.assertEqual(summary['total_cost_basis'], Decimal('300'))
+        self.assertEqual(summary['profit_loss'], Decimal('0'))
+        self.assertEqual(summary['profit_loss_percentage'], Decimal('0'))
+
+    def test_empty_summary_keeps_return_percentage_unavailable(self):
+        with patch('portfolio.business.get_positions_by_user', return_value=[]), \
+             patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
+             patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
+            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertEqual(summary['total_cost_basis'], Decimal('0'))
+        self.assertIsNone(summary['profit_loss_percentage'])
 
     def test_get_technical_indicators(self):
         indicators = self.portfolio_manager.get_technical_indicators(self.position)

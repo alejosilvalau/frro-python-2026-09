@@ -105,6 +105,20 @@ def validate_business_day(operation_dt):
     return day
 
 
+def _sp500_window(start, end):
+    """Ventana mínima diaria para S&P500; usa un año si la tenencia fue intradiaria."""
+    if end.date() > start.date():
+        return start, end, False
+    return end - timedelta(days=365), end, True
+
+
+def _inflation_window(start, end):
+    """INDEC publica mensualmente; un único mes requiere una referencia anual."""
+    if (start.year, start.month) != (end.year, end.month):
+        return start, end, False
+    return end - timedelta(days=365), end, True
+
+
 def _fetch_open_lots(position_id, for_update=False):
     lots_query = get_lots_by_position_for_update if for_update else get_lots_by_position
     lots = list(lots_query(position_id))
@@ -501,11 +515,13 @@ class PortfolioManager:
         start_date = performance['comparison_start']
         end_date = performance['comparison_end']
         if start_date is None or end_date is None:
-            return {'sp500_return': None, 'alpha': None}
+            return {'sp500_return': None, 'alpha': None, 'sp500_is_annual_fallback': False}
+
+        window_start, window_end, is_fallback = _sp500_window(start_date, end_date)
 
         sp500_return = self.external_apis.get_sp500_performance(
-            start_date.date(),
-            end_date.date()
+            window_start.date(),
+            window_end.date()
         )
         position_return_usd = performance['profit_loss_percentage_usd']
         alpha = (
@@ -517,6 +533,7 @@ class PortfolioManager:
             'sp500_return': sp500_return,
             'alpha': alpha,
             'position_return_usd': position_return_usd,
+            'sp500_is_annual_fallback': is_fallback,
         }
 
     def compare_with_inflation(self, position, performance=None):
@@ -525,11 +542,13 @@ class PortfolioManager:
         start_date = performance['comparison_start']
         end_date = performance['comparison_end']
         if start_date is None or end_date is None:
-            return {'inflation': None, 'real_return': None}
+            return {'inflation': None, 'real_return': None, 'inflation_is_annual_fallback': False}
+
+        window_start, window_end, is_fallback = _inflation_window(start_date, end_date)
 
         inflation = self.external_apis.get_indec_inflation(
-            start_date.date(),
-            end_date.date()
+            window_start.date(),
+            window_end.date()
         )
         nominal_return = (
             performance['profit_loss_percentage'] if performance['open_amount'] > 0
@@ -544,12 +563,15 @@ class PortfolioManager:
             'inflation': inflation,
             'real_return': real_return,
             'nominal_return': nominal_return,
+            'inflation_is_annual_fallback': is_fallback,
         }
 
     def calculate_portfolio_summary(self, user_id):
         positions = get_positions_by_user(user_id)
 
         total_invested = Decimal('0')
+        # Base de rendimiento: incluye el capital ya realizado, sin alterar el valor vigente.
+        total_cost_basis = Decimal('0')
         total_current_value = Decimal('0')
         total_realized_pnl_ars = Decimal('0')
         open_position_count = 0
@@ -559,6 +581,7 @@ class PortfolioManager:
         for position in positions:
             performance = self.calculate_position_performance(position)
             total_realized_pnl_ars += performance['realized_pnl_ars']
+            total_cost_basis += performance['invested_amount'] or Decimal('0')
 
             # Una posición cerrada no tiene invested_amount/current_value "vigentes": esa plata
             # ya está de vuelta en la liquidez (CashManager), sumarla acá la duplicaría en el
@@ -580,7 +603,9 @@ class PortfolioManager:
             profit_loss_percentage = None
         else:
             profit_loss = (total_current_value - total_invested) + total_realized_pnl_ars
-            profit_loss_percentage = (profit_loss / total_invested * 100) if total_invested > 0 else None
+            profit_loss_percentage = (
+                profit_loss / total_cost_basis * 100 if total_cost_basis > 0 else None
+            )
 
         total_sp500_return = self.external_apis.get_sp500_performance(
             timezone.now().date() - timedelta(days=365),
@@ -602,6 +627,7 @@ class PortfolioManager:
 
         return {
             'total_invested': total_invested,
+            'total_cost_basis': total_cost_basis,
             'total_current_value': total_current_value,
             'profit_loss': profit_loss,
             'profit_loss_percentage': profit_loss_percentage,
