@@ -3,14 +3,15 @@
 {% block title %}Alertas - PortfolioAR{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h2 class="mb-0">Mis Alertas</h2>
-        <a href="{% url 'alerts:alert_create' %}" class="btn btn-primary">Nueva Alerta</a>
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Gestión de alertas</span>
+        <h1>Mis Alertas</h1>
     </div>
+    <a href="{% url 'alerts:alert_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva alerta</a>
 </div>
 
-<div class="row mt-4">
+<div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-body">

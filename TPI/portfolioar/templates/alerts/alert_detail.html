@@ -7,18 +7,17 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Gestionar alerta</h2>
-            <div>
-                <form method="post" action="{% url 'alerts:alert_delete' alert.id %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</button>
-                </form>
-                <a href="{% url 'alerts:alert_list' %}" class="btn btn-secondary">Volver</a>
-            </div>
-        </div>
+<div class="page-header">
+    <div>
+        <span class="eyebrow">{{ alert.stock.ticker }}</span>
+        <h1>Gestionar alerta</h1>
+    </div>
+    <div>
+        <form method="post" action="{% url 'alerts:alert_delete' alert.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta alerta?')">Eliminar</button>
+        </form>
+        <a href="{% url 'alerts:alert_list' %}" class="btn btn-outline-secondary">Volver</a>
     </div>
 </div>
 

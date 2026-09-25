@@ -32,29 +32,32 @@
             <div class="col-md-8">
                 <div class="row">
                     <div class="col-md-4">
-                        <div class="card text-white bg-primary mb-3">
+                        <div class="card mb-3">
                             <div class="card-body">
+                                <span class="metric-icon mb-3"><i class="fa-solid fa-gauge"></i></span>
                                 <h5 class="card-title">Dashboard</h5>
                                 <p class="card-text">Resumen de tu portafolio</p>
-                                <a href="{% url 'portfolio:dashboard' %}" class="btn btn-light">Ver Dashboard</a>
+                                <a href="{% url 'portfolio:dashboard' %}" class="btn btn-outline-secondary">Ver Dashboard</a>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card text-white bg-success mb-3">
+                        <div class="card mb-3">
                             <div class="card-body">
+                                <span class="metric-icon green mb-3"><i class="fa-solid fa-briefcase"></i></span>
                                 <h5 class="card-title">Posiciones</h5>
                                 <p class="card-text">Gestiona tus inversiones</p>
-                                <a href="{% url 'portfolio:position_list' %}" class="btn btn-light">Ver Posiciones</a>
+                                <a href="{% url 'portfolio:position_list' %}" class="btn btn-outline-secondary">Ver Posiciones</a>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card text-white bg-warning mb-3">
+                        <div class="card mb-3">
                             <div class="card-body">
+                                <span class="metric-icon cyan mb-3"><i class="fa-solid fa-bell"></i></span>
                                 <h5 class="card-title">Alertas</h5>
                                 <p class="card-text">Configura alertas técnicas</p>
-                                <a href="{% url 'alerts:alert_list' %}" class="btn btn-light">Ver Alertas</a>
+                                <a href="{% url 'alerts:alert_list' %}" class="btn btn-outline-secondary">Ver Alertas</a>
                             </div>
                         </div>
                     </div>

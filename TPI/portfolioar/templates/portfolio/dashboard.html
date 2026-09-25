@@ -3,207 +3,125 @@
 {% block title %}Dashboard - PortfolioAR{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">Dashboard</h2>
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Resumen de cartera</span>
+        <h1>Dashboard</h1>
     </div>
+    <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva posición</a>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Valor Invertido</h5>
-                <h3 class="card-text">${{ summary.total_invested|floatformat:2 }}</h3>
-            </div>
-        </div>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Valor invertido</span><span class="metric-icon"><i class="fa-solid fa-coins"></i></span></div>
+            <div class="stat-value">${{ summary.total_invested|floatformat:2 }}</div>
+            <div class="stat-subvalue">Capital de posiciones abiertas</div>
+        </section>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">Valor Actual</h5>
-                <h3 class="card-text">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|floatformat:2 }}{% endif %}</h3>
-            </div>
-        </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Valor actual</span><span class="metric-icon green"><i class="fa-solid fa-chart-line"></i></span></div>
+            <div class="stat-value">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|floatformat:2 }}{% endif %}</div>
+            <div class="stat-subvalue">Valuación de mercado</div>
+        </section>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white {% if summary.profit_loss is None %}bg-secondary{% elif summary.profit_loss >= 0 %}bg-success{% else %}bg-danger{% endif %}">
-            <div class="card-body">
-                <h5 class="card-title">Ganancia/Pérdida</h5>
-                {% if summary.profit_loss is None %}
-                <h3 class="card-text">No disponible</h3>
-                {% else %}
-                <h3 class="card-text">${{ summary.profit_loss|floatformat:2 }}</h3>
-                <p class="card-text">{{ summary.profit_loss_percentage|floatformat:2 }}%</p>
-                {% endif %}
-            </div>
-        </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Ganancia / pérdida</span><span class="metric-icon {% if summary.profit_loss is not None and summary.profit_loss < 0 %}red{% else %}green{% endif %}"><i class="fa-solid fa-arrow-trend-{% if summary.profit_loss is not None and summary.profit_loss < 0 %}down{% else %}up{% endif %}"></i></span></div>
+            {% if summary.profit_loss is None %}
+            <div class="stat-value metric-neutral">No disponible</div>
+            {% else %}
+            <div class="stat-value {% if summary.profit_loss >= 0 %}metric-positive{% else %}metric-negative{% endif %}">${{ summary.profit_loss|floatformat:2 }}</div>
+            <div class="stat-subvalue {% if summary.profit_loss >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %}</div>
+            {% endif %}
+        </section>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">Posiciones</h5>
-                <h3 class="card-text">{{ summary.position_count }}</h3>
-            </div>
-        </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Posiciones</span><span class="metric-icon cyan"><i class="fa-solid fa-briefcase"></i></span></div>
+            <div class="stat-value">{{ summary.position_count }}</div>
+            <div class="stat-subvalue">Registradas en tu cartera</div>
+        </section>
     </div>
 </div>
 
 {% if not cash_totals.has_available_cash %}
 <div class="alert alert-info d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4" role="status">
-    <div>
-        <strong>Tu saldo disponible está en cero.</strong>
-        Agregá liquidez para poder simular una nueva compra.
-    </div>
+    <div><strong>Tu saldo disponible está en cero.</strong> Agregá liquidez para poder simular una nueva compra.</div>
     <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary text-nowrap">Agregar liquidez</a>
 </div>
 {% endif %}
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card border-success">
-            <div class="card-body">
-                <h6 class="card-title text-muted">Disponible ARS</h6>
-                <h4 class="card-text">${{ cash_totals.available_ars|floatformat:2 }}</h4>
-                <small class="text-muted">Cargado: ${{ cash_totals.total_ars|floatformat:2 }}</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-primary">
-            <div class="card-body">
-                <h6 class="card-title text-muted">Disponible USD</h6>
-                <h4 class="card-text">U$D {{ cash_totals.available_usd|floatformat:2 }}</h4>
-                <small class="text-muted">Cargado: U$D {{ cash_totals.total_usd|floatformat:2 }}</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-secondary">
-            <div class="card-body">
-                <h6 class="card-title text-muted">Patrimonio Total (ARS)</h6>
-                <h4 class="card-text">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|add:cash_totals.total_ars_equivalent|floatformat:2 }}{% endif %}</h4>
-                <small class="text-muted">Inversiones + Liquidez</small>
-            </div>
-        </div>
-    </div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Disponible ARS</div><div class="cash-value">${{ cash_totals.available_ars|floatformat:2 }}</div><div class="cash-subvalue">Cargado: ${{ cash_totals.total_ars|floatformat:2 }}</div></section></div>
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Disponible USD</div><div class="cash-value">U$D {{ cash_totals.available_usd|floatformat:2 }}</div><div class="cash-subvalue">Cargado: U$D {{ cash_totals.total_usd|floatformat:2 }}</div></section></div>
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Patrimonio total (ARS)</div><div class="cash-value">{% if summary.total_current_value is None %}No disponible{% else %}${{ summary.total_current_value|add:cash_totals.total_ars_equivalent|floatformat:2 }}{% endif %}</div><div class="cash-subvalue">Inversiones + liquidez</div></section></div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Comparación S&P 500</h5>
-                {% if summary.alpha is None %}
-                <h3 class="card-text">No disponible</h3>
-                {% else %}
-                <h3 class="card-text {% if summary.alpha >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ summary.alpha|floatformat:2 }}%
-                </h3>
-                {% endif %}
-                <p class="card-text">
-                    <small>Tu rendimiento: {% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %} |
-                    S&P 500: {% if summary.sp500_return is None %}No disponible{% else %}{{ summary.sp500_return|floatformat:2 }}%{% endif %}</small>
-                </p>
-            </div>
-        </div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <section class="comparison-card">
+            <h2 class="comparison-title">Comparación S&amp;P 500</h2>
+            <div class="comparison-result {% if summary.alpha is None %}metric-neutral{% elif summary.alpha >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if summary.alpha is None %}No disponible{% else %}{{ summary.alpha|floatformat:2 }}%{% endif %}</div>
+            <div class="comparison-line"><span>Tu rendimiento</span><strong>{% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %}</strong></div>
+            <div class="comparison-line"><span>S&amp;P 500</span><strong>{% if summary.sp500_return is None %}No disponible{% else %}{{ summary.sp500_return|floatformat:2 }}%{% endif %}</strong></div>
+            <div class="comparison-line"><span>Alpha</span><strong class="{% if summary.alpha is not None and summary.alpha >= 0 %}metric-positive{% elif summary.alpha is not None %}metric-negative{% endif %}">{% if summary.alpha is None %}No disponible{% else %}{{ summary.alpha|floatformat:2 }}%{% endif %}</strong></div>
+        </section>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Comparación Inflación</h5>
-                {% if summary.real_return is None %}
-                <h3 class="card-text">No disponible</h3>
-                {% else %}
-                <h3 class="card-text {% if summary.real_return >= 0 %}text-success{% else %}text-danger{% endif %}">
-                    {{ summary.real_return|floatformat:2 }}%
-                </h3>
-                {% endif %}
-                <p class="card-text">
-                    <small>Tu rendimiento: {% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %} |
-                    Inflación: {% if summary.inflation is None %}No disponible{% else %}{{ summary.inflation|floatformat:2 }}%{% endif %}</small>
-                </p>
-            </div>
-        </div>
+    <div class="col-lg-4">
+        <section class="comparison-card">
+            <h2 class="comparison-title">Comparación inflación</h2>
+            <div class="comparison-result {% if summary.real_return is None %}metric-neutral{% elif summary.real_return >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if summary.real_return is None %}No disponible{% else %}{{ summary.real_return|floatformat:2 }}%{% endif %}</div>
+            <div class="comparison-line"><span>Tu rendimiento</span><strong>{% if summary.profit_loss_percentage is None %}No disponible{% else %}{{ summary.profit_loss_percentage|floatformat:2 }}%{% endif %}</strong></div>
+            <div class="comparison-line"><span>Inflación</span><strong>{% if summary.inflation is None %}No disponible{% else %}{{ summary.inflation|floatformat:2 }}%{% endif %}</strong></div>
+            <div class="comparison-line"><span>Rendimiento real</span><strong class="{% if summary.real_return is not None and summary.real_return >= 0 %}metric-positive{% elif summary.real_return is not None %}metric-negative{% endif %}">{% if summary.real_return is None %}No disponible{% else %}{{ summary.real_return|floatformat:2 }}%{% endif %}</strong></div>
+        </section>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Distribución por Sector</h5>
+    <div class="col-lg-4">
+        <section class="comparison-card">
+            <h2 class="comparison-title">Distribución por sector</h2>
+            {% if summary.sector_distribution %}
                 {% for sector, value in summary.sector_distribution.items %}
-                <p class="card-text">
-                    <small>{{ sector }}: ${{ value|floatformat:2 }}</small>
-                </p>
+                <div class="sector-item">
+                    <div class="sector-meta"><span>{{ sector }}</span><span>${{ value|floatformat:2 }}</span></div>
+                    <div class="sector-track">{% if summary.total_invested > 0 %}{% widthratio value summary.total_invested 100 as sector_percentage %}<div class="sector-bar" style="width: {{ sector_percentage }}%"></div>{% endif %}</div>
+                </div>
                 {% endfor %}
-            </div>
-        </div>
+            {% else %}
+            <p class="text-muted mb-0">Todavía no hay posiciones para distribuir.</p>
+            {% endif %}
+        </section>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Posiciones Recientes</h5>
-                <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary btn-sm">Nueva Posición</a>
-            </div>
-            <div class="card-body">
-                {% if positions %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Ticker</th>
-                                <th>Empresa</th>
-                                <th>Estado</th>
-                                <th>Cantidad Abierta</th>
-                                <th>Costo Prom.</th>
-                                <th>P&amp;L No Realizado</th>
-                                <th>P&amp;L Realizado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in positions_with_performance %}
-                            <tr>
-                                <td>{{ item.position.stock.ticker }}</td>
-                                <td>{{ item.position.stock.company_name }}</td>
-                                <td>
-                                    {% if item.position.status == 'open' %}
-                                    <span class="badge bg-success">Abierta</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Cerrada</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ item.performance.open_amount }}</td>
-                                <td>${{ item.performance.avg_cost_local|floatformat:2 }}</td>
-                                <td class="{% if item.performance.profit_loss is None %}text-muted{% elif item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                    {% if item.performance.profit_loss is None %}
-                                    No disponible
-                                    {% else %}
-                                    ${{ item.performance.profit_loss|floatformat:2 }}
-                                    ({{ item.performance.profit_loss_percentage|floatformat:2 }}%)
-                                    {% endif %}
-                                </td>
-                                <td class="{% if item.performance.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                    ${{ item.performance.realized_pnl_ars|floatformat:2 }}
-                                </td>
-                                <td>
-                                    <a href="{% url 'portfolio:position_detail' item.position.id %}" class="btn btn-info btn-sm">Ver</a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <p class="text-muted">No tenés posiciones registradas todavía.</p>
-                    <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Agregar primera posición</a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+<section class="card">
+    <div class="card-header d-flex justify-content-between align-items-center py-3 px-4">
+        <h2 class="h6 mb-0">Posiciones recientes</h2>
+        <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary btn-sm">Nueva posición</a>
     </div>
-</div>
+    <div class="card-body p-0">
+        {% if positions %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th class="ps-4">Ticker</th><th>Empresa</th><th>Estado</th><th>Cantidad abierta</th><th>Costo prom.</th><th>P&amp;L no realizado</th><th>P&amp;L realizado</th><th class="pe-4">Acciones</th></tr></thead>
+                <tbody>
+                    {% for item in positions_with_performance %}
+                    <tr>
+                        <td class="ps-4 fw-semibold text-primary">{{ item.position.stock.ticker }}</td><td>{{ item.position.stock.company_name }}</td>
+                        <td>{% if item.position.status == 'open' %}<span class="badge bg-success">Abierta</span>{% else %}<span class="badge bg-secondary">Cerrada</span>{% endif %}</td>
+                        <td>{{ item.performance.open_amount }}</td><td>${{ item.performance.avg_cost_local|floatformat:2 }}</td>
+                        <td class="{% if item.performance.profit_loss is None %}text-muted{% elif item.performance.profit_loss >= 0 %}text-success{% else %}text-danger{% endif %}">{% if item.performance.profit_loss is None %}No disponible{% else %}${{ item.performance.profit_loss|floatformat:2 }} ({{ item.performance.profit_loss_percentage|floatformat:2 }}%){% endif %}</td>
+                        <td class="{% if item.performance.realized_pnl_ars >= 0 %}text-success{% else %}text-danger{% endif %}">${{ item.performance.realized_pnl_ars|floatformat:2 }}</td>
+                        <td class="pe-4"><a href="{% url 'portfolio:position_detail' item.position.id %}" class="btn btn-outline-secondary btn-sm">Ver</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5"><p class="text-muted">No tenés posiciones registradas todavía.</p><a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Agregar primera posición</a></div>
+        {% endif %}
+    </div>
+</section>
 {% endblock %}

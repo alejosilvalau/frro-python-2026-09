@@ -3,13 +3,12 @@
 {% block title %}Condiciones de Alerta - PortfolioAR{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">Condiciones de Alerta</h2>
-            <a href="{% url 'alerts:condition_create' %}" class="btn btn-primary">Nueva condición</a>
-        </div>
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Gestión de alertas</span>
+        <h1>Condiciones de Alerta</h1>
     </div>
+    <a href="{% url 'alerts:condition_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva condición</a>
 </div>
 
 <div class="row">

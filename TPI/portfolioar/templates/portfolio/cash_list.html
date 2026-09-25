@@ -3,43 +3,20 @@
 {% block title %}Liquidez - PortfolioAR{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h2 class="mb-0">Liquidez</h2>
-        {% if cash_positions %}
-        <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary">Nueva entrada</a>
-        {% endif %}
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Tu liquidez</span>
+        <h1>Liquidez</h1>
     </div>
+    {% if cash_positions %}
+    <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva entrada</a>
+    {% endif %}
 </div>
 
-<div class="row mt-4 mb-4">
-    <div class="col-md-4">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">Pesos (ARS)</h5>
-                <h3 class="card-text">${{ totals.available_ars|floatformat:2 }}</h3>
-                <small class="opacity-75">Cargado: ${{ totals.total_ars|floatformat:2 }}</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Dólares (USD)</h5>
-                <h3 class="card-text">U$D {{ totals.available_usd|floatformat:2 }}</h3>
-                <small class="opacity-75">Cargado: U$D {{ totals.total_usd|floatformat:2 }}</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-white bg-secondary">
-            <div class="card-body">
-                <h5 class="card-title">Disponible (equiv. ARS)</h5>
-                <h3 class="card-text">${{ totals.total_ars_equivalent|floatformat:2 }}</h3>
-                <small class="opacity-75">CCL: ${{ totals.ccl|floatformat:2 }}</small>
-            </div>
-        </div>
-    </div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Pesos (ARS)</div><div class="cash-value">${{ totals.available_ars|floatformat:2 }}</div><div class="cash-subvalue">Cargado: ${{ totals.total_ars|floatformat:2 }}</div></section></div>
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Dólares (USD)</div><div class="cash-value">U$D {{ totals.available_usd|floatformat:2 }}</div><div class="cash-subvalue">Cargado: U$D {{ totals.total_usd|floatformat:2 }}</div></section></div>
+    <div class="col-md-4"><section class="cash-card"><div class="cash-label">Disponible (equiv. ARS)</div><div class="cash-value">${{ totals.total_ars_equivalent|floatformat:2 }}</div><div class="cash-subvalue">CCL: ${{ totals.ccl|floatformat:2 }}</div></section></div>
 </div>
 
 <div class="row">
@@ -49,7 +26,7 @@
                 {% if cash_positions %}
                 <div class="table-responsive">
                     <table class="table table-striped table-hover align-middle mb-0">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Moneda</th>
                                 <th class="text-end">Monto</th>

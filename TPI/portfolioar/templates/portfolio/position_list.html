@@ -3,21 +3,22 @@
 {% block title %}Posiciones - PortfolioAR{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h2 class="mb-0">Mis Posiciones</h2>
-        <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary">Nueva Posición</a>
+<div class="page-header">
+    <div>
+        <span class="eyebrow">Tu cartera</span>
+        <h1>Mis Posiciones</h1>
     </div>
+    <a href="{% url 'portfolio:position_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva posición</a>
 </div>
 
-<div class="row mt-4">
+<div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-body p-0">
                 {% if page.object_list %}
                 <div class="table-responsive position-table-responsive">
                     <table class="table table-striped table-hover align-middle mb-0">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Ticker</th>
                                 <th>Empresa</th>
