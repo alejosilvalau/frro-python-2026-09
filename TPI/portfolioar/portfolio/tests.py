@@ -28,7 +28,8 @@ class PortfolioTestBase(TestCase):
         self.stock = Stock.objects.create(
             ticker='AAPL',
             company_name='Apple Inc.',
-            sector=self.sector
+            sector=self.sector,
+            trading_currency='ARS',
         )
         self.broker = Broker.objects.create(name='IOL')
         CashPosition.objects.create(user=self.user, currency='ARS', amount=10_000_000)
@@ -64,6 +65,78 @@ class PositionModelTest(PortfolioTestBase):
 
     def test_position_str(self):
         self.assertEqual(str(self.position), 'AAPL (Abierta)')
+
+
+class PurchaseCurrencyTest(PortfolioTestBase):
+    def test_ars_species_rejects_usd_payment_without_debit(self):
+        with self.assertRaisesRegex(ValueError, 'se negocia en ARS'):
+            self.portfolio_manager.add_position(
+                self.user.id, self.stock.id, self.broker.id, 1, Decimal('10'),
+                datetime(2024, 1, 2), purchase_currency='USD',
+            )
+        self.assertFalse(Position.objects.exists())
+        self.assertEqual(self.cash_manager.get_available(self.user.id, 'USD'), Decimal('10000'))
+
+    def test_usd_species_accepts_usd_and_rejects_ars_for_additional_lot(self):
+        self.stock.trading_currency = 'USD'
+        self.stock.save(update_fields=['trading_currency'])
+        with patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos')):
+            position = self.portfolio_manager.add_position(
+                self.user.id, self.stock.id, self.broker.id, 1, Decimal('10'),
+                datetime(2024, 1, 2), purchase_currency='USD', price_input_currency='USD',
+            )
+            with self.assertRaisesRegex(ValueError, 'se negocia en USD'):
+                self.lot_manager.add_lot(
+                    position.id, 1, Decimal('10'), datetime(2024, 1, 3),
+                    purchase_currency='ARS',
+                )
+        self.assertEqual(Lot.objects.filter(position=position).count(), 1)
+        self.assertEqual(self.cash_manager.get_available(self.user.id, 'ARS'), Decimal('10000000'))
+        self.assertEqual(self.cash_manager.get_available(self.user.id, 'USD'), Decimal('9990'))
+
+    def test_unknown_species_currency_blocks_purchase(self):
+        self.stock.trading_currency = None
+        self.stock.save(update_fields=['trading_currency'])
+        with self.assertRaisesRegex(ValueError, 'No se conoce la moneda'):
+            self.portfolio_manager.add_position(
+                self.user.id, self.stock.id, self.broker.id, 1, Decimal('10'), datetime(2024, 1, 2),
+            )
+        self.assertFalse(Position.objects.exists())
+
+
+class InstrumentDistributionTest(PortfolioTestBase):
+    def test_sector_distribution_excludes_fixed_income_and_unclassified_etfs(self):
+        company_cedear = Stock.objects.create(
+            ticker='MSFT', company_name='Cedear Microsoft', tipo='cedear',
+            sector=Sector.objects.create(name='Technology'), cedear_kind='company', trading_currency='ARS',
+        )
+        etf = Stock.objects.create(ticker='SPY', company_name='Cedear SP500', tipo='cedear', cedear_kind='etf', trading_currency='ARS')
+        bond = Stock.objects.create(ticker='AL30', company_name='Bono soberano', tipo='bono', trading_currency='ARS')
+        stocks = [self.stock, company_cedear, etf, bond]
+        positions = [
+            self.portfolio_manager.add_position(
+                self.user.id, stock.id, self.broker.id, 1, Decimal('100'), datetime(2024, 1, 1)
+            )
+            for stock in stocks
+        ]
+
+        def performance(_position):
+            return {
+                'realized_pnl_ars': Decimal('0'), 'open_amount': 1,
+                'invested_amount': Decimal('100'), 'price_unavailable': False,
+                'current_value': Decimal('100'),
+            }
+
+        with patch('portfolio.business.get_positions_by_user', return_value=positions), \
+             patch.object(self.portfolio_manager, 'calculate_position_performance', side_effect=performance), \
+             patch.object(self.portfolio_manager.external_apis, 'get_sp500_performance', return_value=None), \
+             patch.object(self.portfolio_manager.external_apis, 'get_indec_inflation', return_value=None):
+            summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)
+
+        self.assertEqual(summary['sector_invested'], Decimal('200'))
+        self.assertEqual(summary['sector_distribution'], {'Technology': Decimal('100') + Decimal('100')})
+        self.assertEqual(summary['asset_class_distribution']['CEDEAR · ETF'], Decimal('100'))
+        self.assertEqual(summary['asset_class_distribution']['Bono'], Decimal('100'))
 
 
 class LotModelTest(PortfolioTestBase):
@@ -586,16 +659,61 @@ class PositionCreateViewTest(PortfolioTestBase):
 
         self.assertIn(('accion', 'Acción'), response.context['stock_types'])
         self.assertContains(response, 'id="stock_type_filter"')
+        self.assertContains(response, 'value="accion" selected>Acciones')
+        self.assertNotContains(response, 'id="stock_type_filter"><option value="">Todos</option>')
         self.assertContains(response, 'data-operation-pricing')
         self.assertContains(response, 'new TomSelect(stockSelect')
+        self.assertContains(response, 'maxOptions:null')
+        self.assertContains(response, "sortField:{field:'text',direction:'asc'}")
         self.assertContains(response, "new TomSelect('#broker_id'")
         self.assertContains(response, 'data-type="accion"')
+        self.assertContains(response, 'id="issuer_filter"')
+        self.assertContains(response, 'id="rate_filter"')
+        self.assertContains(response, 'data-issuer=""')
+        self.assertContains(response, 'data-trading-currency="ARS"')
+        self.assertContains(response, 'data-available-ars="10000000.00"')
+        self.assertContains(response, 'data-available-usd="10000.00"')
+        self.assertContains(response, 'Moneda de pago pendiente. Elegí un instrumento.')
+        self.assertContains(response, 'class="payment-currency-summary"')
+        self.assertNotContains(response, 'type="radio" name="purchase_currency"')
+        self.assertContains(response, 'id="purchase-warning"')
+        self.assertContains(response, 'data-broker-input="broker_id"')
 
     def test_post_valid_creates_position_and_debits_cash(self):
         resp = self.client.post(reverse('portfolio:position_create'), self.valid_data)
         self.assertRedirects(resp, reverse('portfolio:position_list'))
         self.assertEqual(Position.objects.filter(user=self.user).count(), 1)
         self.assertEqual(self.cash_manager.get_available(self.user.id, 'ARS'), Decimal('10000000') - 10000)
+
+    def test_post_wrong_payment_currency_shows_error_and_does_not_create(self):
+        response = self.client.post(
+            reverse('portfolio:position_create'),
+            {**self.valid_data, 'purchase_currency': 'USD'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('se negocia en ARS', response.context['error'])
+        self.assertFalse(Position.objects.exists())
+
+    def test_post_without_broker_shows_error_and_does_not_create(self):
+        response = self.client.post(reverse('portfolio:position_create'), {
+            **self.valid_data, 'broker_id': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Elegí un broker válido', response.context['error'])
+        self.assertFalse(Position.objects.exists())
+
+    def test_usd_purchase_with_no_usd_cash_is_rejected(self):
+        self.stock.trading_currency = 'USD'
+        self.stock.save(update_fields=['trading_currency'])
+        CashPosition.objects.filter(user=self.user, currency='USD').update(amount=0)
+        with patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos')):
+            response = self.client.post(reverse('portfolio:position_create'), {
+                **self.valid_data, 'amount': '10', 'price': '7.23',
+                'purchase_currency': 'USD', 'price_input_currency': 'USD',
+            })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Liquidez insuficiente en USD', response.context['error'])
+        self.assertFalse(Position.objects.exists())
 
     def test_post_invalid_amount_shows_error_and_does_not_create(self):
         data = {**self.valid_data, 'amount': '0'}
@@ -706,6 +824,18 @@ class LotViewsTest(PortfolioTestBase):
         resp = self.client.get(reverse('portfolio:lot_create', args=[self.position.id]))
         self.assertEqual(resp.status_code, 200)
         self.assertIn('available_ars', resp.context)
+        self.assertContains(resp, 'data-available-usd="10000.00"')
+        self.assertContains(resp, 'class="payment-currency-summary is-selected"')
+        self.assertNotContains(resp, 'type="radio" name="purchase_currency"')
+        self.assertContains(resp, 'id="purchase-warning"')
+
+    def test_usd_lot_form_defaults_to_usd_price_editor(self):
+        self.stock.trading_currency = 'USD'
+        self.stock.save(update_fields=['trading_currency'])
+        response = self.client.get(reverse('portfolio:lot_create', args=[self.position.id]))
+        self.assertContains(response, 'name="purchase_currency" value="USD"')
+        self.assertContains(response, 'Dólares (USD) · Disponible')
+        self.assertContains(response, """document.querySelector('input[name="price_editor_currency"][value="USD"]').checked = true;""")
 
     def test_post_valid_adds_lot_and_debits_cash(self):
         data = {
@@ -725,6 +855,16 @@ class LotViewsTest(PortfolioTestBase):
         resp = self.client.post(reverse('portfolio:lot_create', args=[self.position.id]), data)
         self.assertEqual(resp.status_code, 200)
         self.assertIn('error', resp.context)
+
+    def test_post_wrong_payment_currency_shows_error_and_does_not_add_lot(self):
+        before = Lot.objects.filter(position=self.position).count()
+        response = self.client.post(reverse('portfolio:lot_create', args=[self.position.id]), {
+            'amount': '1', 'price': '12', 'purchased_at': '2024-02-01T10:00',
+            'purchase_currency': 'USD', 'fees': '0',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('se negocia en ARS', response.context['error'])
+        self.assertEqual(Lot.objects.filter(position=self.position).count(), before)
 
     def test_delete_untouched_lot_refunds_cash(self):
         lot = self.lot_manager.add_lot(self.position.id, 5, 1200.0, datetime(2024, 2, 1))
@@ -901,6 +1041,9 @@ class DashboardAndListViewsTest(PortfolioTestBase):
         self.assertEqual(resp.status_code, 200)
         self.assertNotContains(resp, 'Tu saldo disponible está en cero.')
         self.assertNotContains(resp, 'No pudimos consultar cotizaciones:')
+        self.assertContains(resp, 'Composición por clase de activo')
+        self.assertContains(resp, 'Distribución por sector empresarial')
+        self.assertContains(resp, 'Solo acciones y CEDEARs identificados como empresas')
 
     @patch('portfolio.business.get_historical_prices', return_value=None)
     @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('5'))

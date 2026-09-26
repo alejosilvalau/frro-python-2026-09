@@ -14,6 +14,7 @@ from .business import (
     is_business_day, last_business_day, default_operation_datetime,
 )
 from core.business import StockManager, BrokerManager
+from core.models import Broker, Stock
 
 
 def _parse_integer(value, field_name):
@@ -124,6 +125,8 @@ def position_create(request):
             price = _parse_decimal(request.POST.get('price'), 'El precio')
             purchased_at = _parse_operation_datetime(request.POST.get('purchased_at'), 'compra')
             purchase_currency = request.POST.get('purchase_currency', 'ARS')
+            if not broker_id or not Broker.objects.filter(id=broker_id).exists():
+                raise ValueError('Elegí un broker válido para continuar')
             portfolio_manager = PortfolioManager()
             portfolio_manager.add_position(
                 request.user.id, stock_id, broker_id, amount, price, purchased_at, purchase_currency,
@@ -140,6 +143,8 @@ def position_create(request):
                 'error': str(e),
                 'stocks': stocks,
                 'stock_types': stock_manager.get_type_choices(),
+                'issuer_types': Stock.ISSUER_CHOICES,
+                'rate_references': Stock.RATE_REFERENCE_CHOICES,
                 'brokers': brokers,
                 'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
                 'available_usd': cash_manager.get_available(request.user.id, 'USD'),
@@ -152,6 +157,8 @@ def position_create(request):
     return render(request, 'portfolio/position_form.html', {
         'stocks': stocks,
         'stock_types': stock_manager.get_type_choices(),
+        'issuer_types': Stock.ISSUER_CHOICES,
+        'rate_references': Stock.RATE_REFERENCE_CHOICES,
         'brokers': brokers,
         'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
         'available_usd': cash_manager.get_available(request.user.id, 'USD'),

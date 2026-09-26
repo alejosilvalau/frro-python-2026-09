@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}Nueva posición - PortfolioAR{% endblock %}
 {% block extra_head %}<link href="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">{% endblock %}
@@ -9,16 +9,21 @@
   <div class="card-header"><h4 class="mb-0">Nueva posición</h4></div>
   <div class="card-body">
     {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-    <form method="post" data-operation-pricing data-pricing-api="{% url 'portfolio:api_instrument_price' %}" data-stock-input="stock_id" data-date-input="purchased_at">
+    <form method="post" data-operation-pricing data-purchase-check data-pricing-api="{% url 'portfolio:api_instrument_price' %}" data-stock-input="stock_id" data-broker-input="broker_id" data-date-input="purchased_at">
       {% csrf_token %}
-      <div class="mb-3"><label class="form-label fw-semibold">Pagar con</label><div class="d-flex gap-4">
-        <label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="ARS" checked> Pesos (ARS) · ${{ available_ars|floatformat:2 }}</label>
-        <label class="form-check"><input class="form-check-input" type="radio" name="purchase_currency" value="USD"> Dólares (USD) · U$D {{ available_usd|floatformat:2 }}</label>
-      </div></div>
+      <div class="mb-3">
+        <div class="form-label fw-semibold">Pagar con</div>
+        <input type="hidden" id="purchase_currency" name="purchase_currency" value="" data-available-ars="{{ available_ars|unlocalize }}" data-available-usd="{{ available_usd|unlocalize }}">
+        <div id="purchase-currency-status" class="payment-currency-summary" role="status" aria-live="polite">Moneda de pago pendiente. Elegí un instrumento.</div>
+      </div>
       <div class="row">
-        <div class="col-md-3 mb-3"><label for="stock_type_filter" class="form-label">Tipo de instrumento</label><select class="form-select" id="stock_type_filter"><option value="">Todos</option>{% for value,label in stock_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-md-5 mb-3"><label for="stock_id" class="form-label">Instrumento</label><select class="form-select" id="stock_id" name="stock_id" required><option value="">Buscar por ticker o nombre...</option>{% for stock in stocks %}<option value="{{ stock.id }}" data-type="{{ stock.tipo }}" data-quote-unit="{% if stock.tipo == 'bono' or stock.tipo == 'letra' %}100{% else %}1{% endif %}">{{ stock.ticker }} - {{ stock.company_name }}</option>{% endfor %}</select></div>
+        <div class="col-md-3 mb-3"><label for="stock_type_filter" class="form-label">Tipo de instrumento</label><select class="form-select" id="stock_type_filter">{% for value,label in stock_types %}<option value="{{ value }}" {% if value == 'accion' %}selected{% endif %}>{% if value == 'accion' %}Acciones{% else %}{{ label }}s{% endif %}</option>{% endfor %}</select></div>
+        <div class="col-md-5 mb-3"><label for="stock_id" class="form-label">Instrumento</label><select class="form-select" id="stock_id" name="stock_id" required><option value="">Buscar por ticker o nombre...</option>{% for stock in stocks %}<option value="{{ stock.id }}" data-type="{{ stock.tipo }}" data-issuer="{{ stock.issuer_type|default:'' }}" data-rate="{{ stock.rate_reference|default:'' }}" data-trading-currency="{{ stock.trading_currency|default:'' }}" data-quote-unit="{% if stock.tipo == 'bono' or stock.tipo == 'letra' %}100{% else %}1{% endif %}">{{ stock.ticker }} - {{ stock.company_name }}</option>{% endfor %}</select></div>
         <div class="col-md-4 mb-3"><label for="broker_id" class="form-label">Broker</label><select class="form-select" id="broker_id" name="broker_id" required><option value="">Buscar broker...</option>{% for broker in brokers %}<option value="{{ broker.id }}">{{ broker.name }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="row" id="fixed-income-filters">
+        <div class="col-md-3 mb-3"><label for="issuer_filter" class="form-label">Emisor (renta fija)</label><select class="form-select" id="issuer_filter"><option value="">Todos</option>{% for value,label in issuer_types %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3 mb-3"><label for="rate_filter" class="form-label">Rendimiento</label><select class="form-select" id="rate_filter"><option value="">Todos</option>{% for value,label in rate_references %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
       </div>
       <div class="row"><div class="col-md-4 mb-3"><label for="amount" class="form-label">Cantidad <span id="quantity-unit"></span></label><input type="number" class="form-control" id="amount" name="amount" min="1" required></div><div class="col-md-8 mb-3"><label for="purchased_at" class="form-label">Fecha de compra</label><input type="datetime-local" class="form-control" id="purchased_at" name="purchased_at" value="{{ default_operation_datetime|date:'Y-m-d\\TH:i' }}" max="{{ now|date:'Y-m-d\\TH:i' }}" required></div></div>
       <fieldset class="border rounded p-3 mb-3"><legend class="float-none w-auto px-2 fs-6">Precio de operación</legend>
@@ -29,7 +34,8 @@
         <div class="mb-3 d-none"><label for="manual_ccl_rate" class="form-label">CCL manual</label><input id="manual_ccl_rate" name="manual_ccl_rate" type="number" step="0.0001" min="0.0001" class="form-control"><small class="text-muted">No había CCL disponible para esta fecha.</small></div>
       </fieldset>
       <div id="operation-total" class="alert alert-info d-none">Costo total: <strong></strong></div>
-      <button type="submit" class="btn btn-primary w-100">Crear posición</button>
+      <div id="purchase-warning" class="alert alert-warning d-none" role="alert" aria-live="polite"><span></span> <a href="{% url 'portfolio:cash_create' %}" class="alert-link d-none">Agregar liquidez</a></div>
+      <button type="submit" class="btn btn-primary w-100" disabled>Crear posición</button>
     </form><div class="mt-3 text-center"><a href="{% url 'portfolio:position_list' %}">Volver a la lista</a></div>
   </div>
 </div></div></div>
@@ -39,10 +45,48 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/js/tom-select.complete.min.js"></script>
 <script>
 const stockSelect = document.getElementById('stock_id');
-const choices = Array.from(stockSelect.options).filter(o => o.value).map(o => ({value:o.value,text:o.text,type:o.dataset.type}));
-const stockControl = new TomSelect(stockSelect,{create:false,allowEmptyOption:true,placeholder:'Buscar por ticker o nombre',searchField:['text']});
+const choices = Array.from(stockSelect.options).filter(o => o.value).map(o => ({value:o.value,text:o.text,type:o.dataset.type,issuer:o.dataset.issuer,rate:o.dataset.rate,tradingCurrency:o.dataset.tradingCurrency,quoteUnit:o.dataset.quoteUnit}));
+const stockControl = new TomSelect(stockSelect,{create:false,allowEmptyOption:true,placeholder:'Buscar por ticker o nombre',searchField:['text'],maxOptions:null,sortField:{field:'text',direction:'asc'}});
 new TomSelect('#broker_id',{create:false,allowEmptyOption:true,placeholder:'Buscar broker',searchField:['text']});
-document.getElementById('stock_type_filter').addEventListener('change', event => { stockControl.clear(true); stockControl.clearOptions(); stockControl.addOptions(choices.filter(o => !event.target.value || o.type === event.target.value)); stockControl.refreshOptions(false); });
+const typeFilter = document.getElementById('stock_type_filter');
+const issuerFilter = document.getElementById('issuer_filter');
+const rateFilter = document.getElementById('rate_filter');
+const fixedIncomeFilters = document.getElementById('fixed-income-filters');
+const purchaseCurrencyStatus = document.getElementById('purchase-currency-status');
+function syncPurchaseCurrency() {
+  const selected = choices.find(o => o.value === stockControl.getValue());
+  const currency = ['ARS','USD'].includes(selected?.tradingCurrency) ? selected.tradingCurrency : '';
+  const paymentInput = document.getElementById('purchase_currency');
+  paymentInput.value = currency;
+  paymentInput.dispatchEvent(new Event('change', {bubbles:true}));
+  const editor = document.querySelector(`input[name="price_editor_currency"][value="${currency}"]`);
+  if (editor) {
+    editor.checked = true;
+    editor.dispatchEvent(new Event('change', {bubbles:true}));
+  }
+  purchaseCurrencyStatus.classList.toggle('is-selected', Boolean(currency));
+  const available = Number(currency === 'USD' ? paymentInput.dataset.availableUsd : paymentInput.dataset.availableArs);
+  purchaseCurrencyStatus.textContent = !selected
+    ? 'Moneda de pago pendiente. Elegí un instrumento.'
+    : currency ? `${currency === 'USD' ? 'Dólares (USD)' : 'Pesos (ARS)'} · Disponible ${currency === 'USD' ? 'U$D ' : '$'}${available.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}. La moneda la define la especie.`
+      : 'Moneda de negociación no verificada: no se puede comprar esta especie.';
+}
+function filterStocks() {
+  const fixedIncomeSelected = !typeFilter.value || ['bono','letra'].includes(typeFilter.value);
+  fixedIncomeFilters.classList.toggle('d-none', !fixedIncomeSelected);
+  stockControl.clear(true);
+  stockControl.clearOptions();
+  stockControl.addOptions(choices.filter(o =>
+    (!typeFilter.value || o.type === typeFilter.value) &&
+    (!fixedIncomeSelected || !issuerFilter.value || o.issuer === issuerFilter.value) &&
+    (!fixedIncomeSelected || !rateFilter.value || o.rate === rateFilter.value)
+  ));
+  stockControl.refreshOptions(false);
+  syncPurchaseCurrency();
+}
+[typeFilter, issuerFilter, rateFilter].forEach(filter => filter.addEventListener('change', filterStocks));
+stockSelect.addEventListener('change', syncPurchaseCurrency);
+filterStocks();
 </script>
 <script src="{% static 'js/operation_pricing.js' %}"></script>
 {% endblock %}

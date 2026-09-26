@@ -14,20 +14,46 @@
   const cclStatus = document.getElementById('ccl-badge');
   const priceStatus = document.getElementById('price-status');
   const submitButton = form.querySelector('button[type="submit"], button:not([type])');
+  const purchaseForm = form.hasAttribute('data-purchase-check');
+  const purchaseWarning = document.getElementById('purchase-warning');
+  const brokerInput = document.getElementById(form.dataset.brokerInput);
   let quoteUnit = 1;
   let requestId = 0;
   let controller;
   let cclRate;
+  let pricingBlocked = false;
 
   const updateTotal = () => {
     const amount = Number(document.getElementById('amount')?.value);
-    const payment = document.querySelector('input[name="purchase_currency"]:checked, input[name="sell_currency"]:checked')?.value;
+    const paymentInput = form.querySelector('input[name="purchase_currency"], input[name="sell_currency"]:checked');
+    const payment = paymentInput?.value;
     const price = Number(payment === 'USD' ? usdInput.value : arsInput.value);
     const total = document.getElementById('operation-total');
-    if (!total || !(amount > 0) || !(price > 0)) return total?.classList.add('d-none');
+    const hasTotal = amount > 0 && price > 0 && Number.isFinite(amount * price) && (!purchaseForm || Boolean(payment));
     const value = amount * price / quoteUnit;
-    total.classList.remove('d-none');
-    total.querySelector('strong').textContent = `${payment === 'USD' ? 'U$D ' : '$'}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+    if (total) {
+      total.classList.toggle('d-none', !hasTotal);
+      if (hasTotal) total.querySelector('strong').textContent = `${payment === 'USD' ? 'U$D ' : '$'}${value.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+    }
+    if (!purchaseForm) return;
+
+    const stockReady = Boolean(stockInput?.value || form.dataset.stockId);
+    const brokerReady = !brokerInput || Boolean(brokerInput.value);
+    const available = Number(payment === 'USD' ? paymentInput?.dataset.availableUsd : paymentInput?.dataset.availableArs);
+    const insufficient = hasTotal && Number.isFinite(available) && value > available + 0.0000001;
+    if (purchaseWarning) {
+      const liquidityLink = purchaseWarning.querySelector('a');
+      purchaseWarning.classList.toggle('d-none', !insufficient && (brokerReady || !stockReady));
+      liquidityLink?.classList.toggle('d-none', !insufficient);
+      if (insufficient) {
+        const missing = value - available;
+        const symbol = payment === 'USD' ? 'U$D ' : '$';
+        purchaseWarning.querySelector('span').textContent = `Liquidez ${payment} insuficiente: faltan ${symbol}${missing.toLocaleString('es-AR', {minimumFractionDigits: 2})}.`;
+      } else if (stockReady && !brokerReady) {
+        purchaseWarning.querySelector('span').textContent = 'Elegí un broker para continuar.';
+      }
+    }
+    if (submitButton) submitButton.disabled = pricingBlocked || !stockReady || !payment || !brokerReady || !hasTotal || insufficient || !priceInput.value;
   };
 
   const currentCurrency = () => document.querySelector('input[name="price_editor_currency"]:checked')?.value || 'ARS';
@@ -52,9 +78,11 @@
     priceInput.value = '';
     cclInput.value = '';
     manualCcl?.closest('.mb-3').classList.add('d-none');
-    if (submitButton) submitButton.disabled = false;
+    pricingBlocked = false;
+    if (submitButton && !purchaseForm) submitButton.disabled = false;
     if (cclStatus) cclStatus.textContent = '';
     if (priceStatus) priceStatus.textContent = '';
+    updateTotal();
   };
   const deriveOther = () => {
     if (!cclRate) return;
@@ -77,12 +105,15 @@
       .then(({response, data}) => {
         if (id !== requestId) return;
         if (!response.ok) {
-          if (submitButton) submitButton.disabled = true;
+          pricingBlocked = true;
+          if (submitButton && !purchaseForm) submitButton.disabled = true;
           if (priceStatus) priceStatus.textContent = data.error === 'dia_no_habil' ? `Día no hábil. Último hábil: ${data.last_business_day}` : 'Fecha inválida';
+          updateTotal();
           return;
         }
         quoteUnit = data.quote_unit || 1;
-        if (submitButton) submitButton.disabled = false;
+        pricingBlocked = false;
+        if (submitButton && !purchaseForm) submitButton.disabled = false;
         cclRate = data.ccl?.rate ? Number(data.ccl.rate) : null;
         if (cclRate) {
           cclInput.value = cclRate;
@@ -115,6 +146,7 @@
     }
   });
   document.getElementById('amount')?.addEventListener('input', updateTotal);
+  brokerInput?.addEventListener('change', updateTotal);
   document.querySelectorAll('input[name="purchase_currency"], input[name="sell_currency"]').forEach(input => input.addEventListener('change', updateTotal));
   setEditableCurrency();
   if (form.dataset.stockId) load();

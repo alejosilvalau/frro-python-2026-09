@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from core.currency import normalize_iol_currency
 from . import fifo
 from .data_access import (
     get_positions_by_user, get_position_by_id, get_position_for_update, create_position,
@@ -107,6 +108,16 @@ def validate_business_day(operation_dt):
     return day
 
 
+def validate_purchase_currency(stock, currency):
+    if stock.trading_currency not in ('ARS', 'USD'):
+        raise ValueError(f'No se conoce la moneda de negociación de {stock.ticker}. Actualizá el catálogo.')
+    if currency != stock.trading_currency:
+        raise ValueError(
+            f'{stock.ticker} se negocia en {stock.trading_currency}; '
+            f'no se puede pagar con {currency or "una moneda no indicada"}.'
+        )
+
+
 def _sp500_window(start, end):
     """Ventana mínima diaria para S&P500; usa un año si la tenencia fue intradiaria."""
     if end.date() > start.date():
@@ -152,10 +163,7 @@ def _validate_operation_datetime(value, field_name):
 class MarketDataManager:
     @staticmethod
     def _currency(value):
-        normalized = str(value or '').lower()
-        if 'dolar' in normalized or normalized == 'usd':
-            return 'USD'
-        return 'ARS'
+        return normalize_iol_currency(value)
 
     def get_quote_for_date(self, stock, day):
         today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
@@ -165,8 +173,11 @@ class MarketDataManager:
                 price = raw.get('ultimoPrecio')
                 if price is None:
                     return None, 'sin_datos'
+                currency = self._currency(raw.get('moneda')) or stock.trading_currency
+                if currency is None:
+                    return None, 'sin_datos'
                 return QuoteResult(
-                    Decimal(str(price)), self._currency(raw.get('moneda')), day,
+                    Decimal(str(price)), currency, day,
                     'iol_realtime', raw.get('fechaHora'),
                 ), None
 
@@ -177,8 +188,11 @@ class MarketDataManager:
             price = raw.get('ultimoPrecio')
             if price is None:
                 return None, 'sin_datos'
+            currency = self._currency(raw.get('moneda')) or stock.trading_currency
+            if currency is None:
+                return None, 'sin_datos'
             return QuoteResult(
-                Decimal(str(price)), self._currency(raw.get('moneda')), day,
+                Decimal(str(price)), currency, day,
                 'iol_daily_close', raw.get('fechaHora'),
             ), None
         except Exception:
@@ -211,6 +225,8 @@ class MarketDataManager:
 
         day = validate_business_day(operation_dt)
         quote, _ = self.get_quote_for_date(stock, day)
+        if quote is not None and stock.trading_currency and quote.currency != stock.trading_currency:
+            raise ValueError(f'IOL informa una moneda distinta para {stock.ticker}. Actualizá el catálogo.')
         ccl, _ = self.get_ccl_for_date(day)
         if ccl is None:
             try:
@@ -325,6 +341,7 @@ class PortfolioManager:
             raise ValueError("La cantidad debe ser mayor a 0")
         purchased_at = _validate_operation_datetime(purchased_at, 'compra')
         stock = StockManager().get_by_id(stock_id)
+        validate_purchase_currency(stock, purchase_currency)
         pricing = MarketDataManager().resolve_operation_pricing(
             stock, purchased_at, price, price_input_currency or purchase_currency,
             client_ccl_rate, manual_ccl_rate,
@@ -588,6 +605,8 @@ class PortfolioManager:
         total_realized_pnl_ars = Decimal('0')
         open_position_count = 0
         sector_distribution = {}
+        asset_class_distribution = {}
+        sector_invested = Decimal('0')
         has_unavailable_price = False
         unavailable_price_tickers = set()
 
@@ -606,9 +625,21 @@ class PortfolioManager:
                     unavailable_price_tickers.add(position.stock.ticker)
                 else:
                     total_current_value += performance['current_value'] or Decimal('0')
-                sector = position.stock.sector.name if position.stock.sector else 'Sin sector'
-                sector_distribution.setdefault(sector, Decimal('0'))
-                sector_distribution[sector] += performance['invested_amount']
+                stock = position.stock
+                invested = performance['invested_amount'] or Decimal('0')
+                if stock.tipo == 'accion' or (stock.tipo == 'cedear' and stock.cedear_kind == 'company'):
+                    sector = stock.sector.name if stock.sector else 'Sin clasificar'
+                    sector_distribution[sector] = sector_distribution.get(sector, Decimal('0')) + invested
+                    sector_invested += invested
+
+                if stock.tipo == 'cedear':
+                    cedear_labels = {'company': 'CEDEAR · Empresa', 'etf': 'CEDEAR · ETF'}
+                    asset_class = cedear_labels.get(stock.cedear_kind, 'CEDEAR · Sin clasificar')
+                else:
+                    asset_class = dict(stock.TIPO_CHOICES).get(stock.tipo, 'Otro')
+                asset_class_distribution[asset_class] = (
+                    asset_class_distribution.get(asset_class, Decimal('0')) + invested
+                )
 
         ccl = Decimal(str(cash_totals['ccl']))
         total_usd = Decimal(str(cash_totals['total_usd']))
@@ -668,6 +699,8 @@ class PortfolioManager:
             'inflation': total_inflation,
             'real_return': real_return,
             'sector_distribution': sector_distribution,
+            'sector_invested': sector_invested,
+            'asset_class_distribution': asset_class_distribution,
             'total_realized_pnl_ars': total_realized_pnl_ars,
             'unavailable_price_tickers': sorted(unavailable_price_tickers),
             'cash_valuation_unavailable': cash_valuation_unavailable,
@@ -771,6 +804,7 @@ class LotManager:
             raise ValueError("La cantidad debe ser mayor a 0")
         purchased_at = _validate_operation_datetime(purchased_at, 'compra')
         position = get_position_by_id(position_id)
+        validate_purchase_currency(position.stock, purchase_currency)
         pricing = MarketDataManager().resolve_operation_pricing(
             position.stock, purchased_at, price, price_input_currency or purchase_currency,
             client_ccl_rate, manual_ccl_rate,

@@ -76,7 +76,7 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <section class="comparison-card">
             <h2 class="comparison-title">Comparación S&amp;P 500</h2>
             <div class="comparison-result {% if summary.alpha is None %}metric-neutral{% elif summary.alpha >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if summary.alpha is None %}No disponible{% else %}{{ summary.alpha|floatformat:2 }}%{% endif %}</div>
@@ -85,7 +85,7 @@
             <div class="comparison-line"><span>Alpha</span><strong class="{% if summary.alpha is not None and summary.alpha >= 0 %}metric-positive{% elif summary.alpha is not None %}metric-negative{% endif %}">{% if summary.alpha is None %}No disponible{% else %}{{ summary.alpha|floatformat:2 }}%{% endif %}</strong></div>
         </section>
     </div>
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <section class="comparison-card">
             <h2 class="comparison-title">Comparación inflación</h2>
             <div class="comparison-result {% if summary.real_return is None %}metric-neutral{% elif summary.real_return >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if summary.real_return is None %}No disponible{% else %}{{ summary.real_return|floatformat:2 }}%{% endif %}</div>
@@ -94,18 +94,38 @@
             <div class="comparison-line"><span>Rendimiento real</span><strong class="{% if summary.real_return is not None and summary.real_return >= 0 %}metric-positive{% elif summary.real_return is not None %}metric-negative{% endif %}">{% if summary.real_return is None %}No disponible{% else %}{{ summary.real_return|floatformat:2 }}%{% endif %}</strong></div>
         </section>
     </div>
-    <div class="col-lg-4">
-        <section class="comparison-card">
-            <h2 class="comparison-title">Distribución por sector</h2>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <section class="comparison-card h-100">
+            <h2 class="comparison-title">Composición por clase de activo</h2>
+            <p class="text-muted small">Sobre el capital invertido en posiciones abiertas; no incluye liquidez.</p>
+            {% if summary.asset_class_distribution %}
+                {% for asset_class, value in summary.asset_class_distribution.items %}
+                <div class="sector-item">
+                    <div class="sector-meta"><span>{{ asset_class }}</span><span>${{ value|floatformat:2 }}</span></div>
+                    <div class="sector-track">{% if summary.total_invested > 0 %}{% widthratio value summary.total_invested 100 as class_percentage %}<div class="sector-bar" style="width: {{ class_percentage }}%"></div>{% endif %}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p class="text-muted mb-0">Todavía no hay posiciones abiertas.</p>
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-lg-6">
+        <section class="comparison-card h-100">
+            <h2 class="comparison-title">Distribución por sector empresarial</h2>
+            <p class="text-muted small">Solo acciones y CEDEARs identificados como empresas; excluye ETF y renta fija.</p>
             {% if summary.sector_distribution %}
                 {% for sector, value in summary.sector_distribution.items %}
                 <div class="sector-item">
                     <div class="sector-meta"><span>{{ sector }}</span><span>${{ value|floatformat:2 }}</span></div>
-                    <div class="sector-track">{% if summary.total_invested > 0 %}{% widthratio value summary.total_invested 100 as sector_percentage %}<div class="sector-bar" style="width: {{ sector_percentage }}%"></div>{% endif %}</div>
+                    <div class="sector-track">{% if summary.sector_invested > 0 %}{% widthratio value summary.sector_invested 100 as sector_percentage %}<div class="sector-bar" style="width: {{ sector_percentage }}%"></div>{% endif %}</div>
                 </div>
                 {% endfor %}
             {% else %}
-            <p class="text-muted mb-0">Todavía no hay posiciones para distribuir.</p>
+            <p class="text-muted mb-0">No hay posiciones abiertas clasificables por sector.</p>
             {% endif %}
         </section>
     </div>

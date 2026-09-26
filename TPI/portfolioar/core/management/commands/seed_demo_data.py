@@ -15,7 +15,9 @@ class Command(BaseCommand):
     help = 'Crea (o resetea) un usuario de demo con liquidez inicial para desarrollo local. Idempotente.'
 
     def handle(self, *args, **options):
-        if not Stock.objects.exists() and not Broker.objects.exists():
+        # El importador también crea brokers y puede fallar ante IOL; los brokers ya
+        # existentes no deben impedir que se reintente un catálogo aún vacío.
+        if not Stock.objects.exists():
             call_command('seed_instruments_from_iol', stdout=self.stdout)
 
         User = get_user_model()

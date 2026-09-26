@@ -1,8 +1,16 @@
+import csv
+from io import StringIO
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+from django.core.management import call_command
 from django.test import TestCase, Client
 from django.urls import reverse
 
 from core.models import User, Sector, Broker, Stock
-from core.business import AuthManager
+from core.business import AuthManager, StockManager
 
 
 class UserModelTest(TestCase):
@@ -74,6 +82,175 @@ class StockModelTest(TestCase):
 
     def test_stock_str(self):
         self.assertEqual(str(self.stock), 'AAPL - Apple Inc.')
+
+    def test_quote_unit_remains_one_for_equities_and_one_hundred_for_fixed_income(self):
+        manager = StockManager()
+        self.assertEqual(manager.get_quote_unit(self.stock), 1)
+        for tipo in ('bono', 'letra'):
+            fixed_income = Stock.objects.create(
+                ticker=f'{tipo.upper()}-TEST', company_name='Test instrument', tipo=tipo
+            )
+            self.assertEqual(manager.get_quote_unit(fixed_income), 100)
+
+
+class InstrumentClassificationCommandTest(TestCase):
+    def setUp(self):
+        self.sector = Sector.objects.create(name='Manual')
+        self.base = Stock.objects.create(ticker='AAPL', company_name='Cedear Apple Inc.', tipo='cedear')
+        self.ccl = Stock.objects.create(ticker='AAPLC', company_name='Cedear Apple Inc. clase CCL', tipo='cedear')
+        self.official = Stock.objects.create(ticker='AAPLD', company_name='Cedear Apple Inc. Esc.', tipo='cedear')
+        self.unrelated = Stock.objects.create(ticker='AAPLX', company_name='Cedear Apple Inc.', tipo='cedear')
+
+    def _catalog(self, rows):
+        handle = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='', suffix='.csv', delete=False)
+        self.addCleanup(Path(handle.name).unlink, missing_ok=True)
+        writer = csv.DictWriter(handle, fieldnames=[
+            'ticker', 'tipo', 'sector', 'cedear_kind', 'issuer_type', 'rate_reference',
+            'payment_style', 'instrument_family', 'underlying_ticker', 'source', 'source_date',
+        ])
+        writer.writeheader()
+        writer.writerows(rows)
+        handle.close()
+        return handle.name
+
+    def _row(self):
+        return {
+            'ticker': 'AAPL', 'tipo': 'cedear', 'sector': 'Tecnología de la Información',
+            'cedear_kind': 'company', 'issuer_type': '', 'rate_reference': '',
+            'payment_style': '', 'instrument_family': '', 'underlying_ticker': '',
+            'source': 'IAMC, 24/09/2026', 'source_date': '2026-09-24',
+        }
+
+    def test_dry_run_does_not_write_and_apply_links_explicit_c_and_d_variants(self):
+        catalog = self._catalog([self._row()])
+        output = StringIO()
+        call_command('sync_instrument_classification', catalog=catalog, stdout=output)
+        self.assertIn('Simulación (sin escrituras)', output.getvalue())
+        self.assertIsNone(Stock.objects.get(pk=self.base.pk).cedear_kind)
+        self.assertFalse(Sector.objects.filter(name='Tecnología de la Información').exists())
+
+        call_command('sync_instrument_classification', catalog=catalog, apply=True, stdout=Mock())
+        for ticker in ('AAPL', 'AAPLC', 'AAPLD'):
+            stock = Stock.objects.get(ticker=ticker)
+            self.assertEqual(stock.cedear_kind, 'company')
+            self.assertEqual(stock.underlying_ticker, 'AAPL')
+            self.assertEqual(stock.sector.name, 'Tecnología')
+        self.assertIsNone(Stock.objects.get(ticker='AAPLX').cedear_kind)
+
+    def test_manual_classification_is_not_overwritten(self):
+        self.ccl.sector = self.sector
+        self.ccl.cedear_kind = 'etf'
+        self.ccl.classification_manual = True
+        self.ccl.save()
+        call_command(
+            'sync_instrument_classification', catalog=self._catalog([self._row()]),
+            apply=True, stdout=Mock(),
+        )
+        self.ccl.refresh_from_db()
+        self.assertEqual(self.ccl.sector, self.sector)
+        self.assertEqual(self.ccl.cedear_kind, 'etf')
+
+    def test_fixed_income_rules_require_explicit_family_or_issuer_evidence(self):
+        cases = [
+            ('AL30', 'bono', 'Bono Rep. Argentina USD Step Up 2030'),
+            ('BA37D', 'bono', 'Bono Pcia. Bs. As. REGS New 2037'),
+            ('S30S6', 'letra', 'LECAP S30S6'),
+            ('D30S6', 'letra', 'Letra Dólar Linked D30S6'),
+            ('T30A7', 'bono', 'Bono Tesoro NAC CAP V.30/04/27'),
+            ('UNKNOWN', 'bono', 'Bono serie sin emisor ni tasa identificable'),
+        ]
+        created = [Stock.objects.create(ticker=ticker, company_name=name, tipo=kind)
+                   for ticker, kind, name in cases]
+        catalog = self._catalog([])
+
+        call_command('sync_instrument_classification', catalog=catalog, apply=True, stdout=StringIO())
+
+        indexed = {stock.ticker: Stock.objects.get(pk=stock.pk) for stock in created}
+        self.assertEqual(indexed['AL30'].issuer_type, 'national')
+        self.assertEqual(indexed['AL30'].payment_style, 'step_up')
+        self.assertEqual(indexed['BA37D'].issuer_type, 'provincial')
+        self.assertEqual(indexed['S30S6'].issuer_type, 'national')
+        self.assertEqual(indexed['S30S6'].rate_reference, 'fixed')
+        self.assertEqual(indexed['S30S6'].payment_style, 'capitalizable')
+        self.assertEqual(indexed['D30S6'].rate_reference, 'dollar_linked')
+        self.assertEqual(indexed['T30A7'].payment_style, 'capitalizable')
+        self.assertIsNone(indexed['UNKNOWN'].issuer_type)
+        self.assertIsNone(indexed['UNKNOWN'].rate_reference)
+
+    def test_iamc_base_ticker_is_not_misread_as_another_tickers_d_variant(self):
+        Stock.objects.create(ticker='BB', company_name='Cedear Blackberry', tipo='cedear')
+        Stock.objects.create(ticker='BBD', company_name='Cedear Banco Bradesco', tipo='cedear')
+        rows = [
+            {**self._row(), 'ticker': 'BB', 'sector': 'Tecnología de la Información'},
+            {**self._row(), 'ticker': 'BBD', 'sector': 'Servicios Financieros'},
+        ]
+
+        call_command(
+            'sync_instrument_classification', catalog=self._catalog(rows), apply=True, stdout=StringIO(),
+        )
+
+        bradesco = Stock.objects.get(ticker='BBD')
+        self.assertEqual(bradesco.sector.name, 'Finanzas')
+        self.assertEqual(bradesco.underlying_ticker, 'BBD')
+
+
+class SeedInstrumentsFromIolCommandTest(TestCase):
+    def test_iol_currency_normalization_does_not_infer_from_ticker(self):
+        from core.currency import normalize_iol_currency
+
+        self.assertEqual(normalize_iol_currency('AR$'), 'ARS')
+        self.assertEqual(normalize_iol_currency('US$'), 'USD')
+        self.assertIsNone(normalize_iol_currency(None))
+
+    @patch('core.management.commands.seed_instruments_from_iol._get_iol_token', return_value='fake-token')
+    @patch('core.management.commands.seed_instruments_from_iol.requests.get')
+    def test_imports_letras_and_updates_existing_catalog_type(self, get, _token):
+        payloads = [
+            {'titulos': [{'simbolo': 'EXIST', 'descripcion': 'Existing equity', 'moneda': 'AR$'}]},
+            {'titulos': [{'simbolo': 'LEADER', 'descripcion': 'Leader equity', 'moneda': 'AR$'}]},
+            {'titulos': [
+                {'simbolo': 'AAPLC', 'descripcion': 'Cedear Apple C', 'moneda': 'US$'},
+                {'simbolo': 'BBD', 'descripcion': 'Cedear Bradesco', 'moneda': 'AR$'},
+            ]},
+            {'titulos': [{'simbolo': 'EXIST', 'descripcion': 'Existing bond', 'moneda': 'AR$'}]},
+            {'titulos': []},
+            {'titulos': [{'simbolo': 'S30S6', 'descripcion': 'LECAP S30S6', 'moneda': 'AR$'}]},
+        ]
+        get.side_effect = [
+            SimpleNamespace(json=lambda payload=payload: payload, raise_for_status=lambda: None)
+            for payload in payloads
+        ]
+        Stock.objects.create(ticker='EXIST', company_name='Existing equity', tipo='accion')
+
+        call_command('seed_instruments_from_iol', stdout=StringIO())
+
+        self.assertEqual(Stock.objects.get(ticker='EXIST').tipo, 'bono')
+        self.assertEqual(Stock.objects.get(ticker='LEADER').tipo, 'accion')
+        self.assertEqual(Stock.objects.get(ticker='LEADER').trading_currency, 'ARS')
+        self.assertEqual(Stock.objects.get(ticker='AAPLC').trading_currency, 'USD')
+        self.assertEqual(Stock.objects.get(ticker='BBD').trading_currency, 'ARS')
+        letter = Stock.objects.get(ticker='S30S6')
+        self.assertEqual(letter.tipo, 'letra')
+        self.assertEqual(letter.issuer_type, 'national')
+        self.assertEqual(letter.instrument_family, 'LECAP')
+        self.assertEqual(get.call_count, 6)
+
+    @patch('core.management.commands.seed_instruments_from_iol._get_iol_token', return_value='fake-token')
+    @patch('core.management.commands.seed_instruments_from_iol.requests.get')
+    def test_external_failure_does_not_leave_a_partial_instrument_catalog(self, get, _token):
+        from requests.exceptions import HTTPError
+
+        good = SimpleNamespace(
+            json=lambda: {'titulos': [{'simbolo': 'PARTIAL', 'descripcion': 'Partial', 'moneda': 'AR$'}]},
+            raise_for_status=lambda: None,
+        )
+        failed = SimpleNamespace(json=lambda: {}, raise_for_status=lambda: (_ for _ in ()).throw(HTTPError()))
+        get.side_effect = [good, good, good, good, failed]
+
+        with self.assertRaises(HTTPError):
+            call_command('seed_instruments_from_iol', stdout=StringIO())
+
+        self.assertFalse(Stock.objects.exists())
 
 
 class AuthManagerTest(TestCase):

@@ -1,0 +1,446 @@
+ticker,tipo,sector,cedear_kind,issuer_type,rate_reference,payment_style,instrument_family,underlying_ticker,source,source_date
+A3,accion,Servicios Financieros,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+AGRO,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+AUSO,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+BHIP,accion,Servicios Financieros,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+BOLT,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+BPAT,accion,Servicios Financieros,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CADO,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CAPX,accion,Energia,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CARC,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CECO2,accion,Servicios Publicos,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CELU,accion,Materiales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CGPA2,accion,Servicios Publicos,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CRES,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CTIO,accion,Bienes Raices,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+CVH,accion,Comunicaciones,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+DGCU2,accion,Servicios Publicos,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+DOME,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+FERR,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+FIPL,accion,Materiales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+GARO,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+GBAN,accion,Servicios Publicos,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+GCDI,accion,Bienes Raices,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+GCLA,accion,Comunicaciones,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+GRIM,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+HARG,accion,Materiales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+HAVA,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+IEB,accion,Bienes Raices,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+INAG,accion,Materiales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+INTR,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+INVJ,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+IRSA,accion,Bienes Raices,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+LEDE,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+LONG,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+MIRG,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+MOLA,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+MOLI,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+MORI,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+OEST,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+PATA,accion,Consumo Discrecional,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+POLL,accion,Industriales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+RICH,accion,Salud,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+RIGO,accion,Materiales,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+ROSE,accion,Salud,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+SAMI,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+SEMI,accion,Consumo Basico,,,,,,,IAMC Informe diario de acciones 24/09/2026,2026-09-24
+AAL,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AAP,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AAPL,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ABBV,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ABEV,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ABEV3,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ABNB,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ABT,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ACN,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ACWI,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ADBE,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ADGO,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ADI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ADP,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ADS,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AEG,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AEM,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AIG,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AKO.B,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ALAB,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AMAT,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AMD,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AMGN,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AMX,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AMZN,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ANET,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ANF,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ARCO,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ARKK,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ARM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ASR,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ASTS,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AVGO,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AVY,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AXP,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AZN,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+B,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BA,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BA.C,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BABA,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BAK,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BAYN,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BB,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BBD,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BBDC3,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BBV,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BCS,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BHP,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BIDU,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BIIB,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BIOX,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BKNG,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BKR,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BMNR,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BMY,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BNG,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BNY,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BP,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BPA11,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BRKB,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BSBR,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+BX,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+C,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CAAP,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CAH,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CAR,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CAT,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CCJ,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CCL,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CDE,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CEG,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CIBR,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CL,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CLS,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+COIN,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+COP,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+COPX,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+COST,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CRM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CRWD,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CRWV,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CSCO,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CSNA3,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CVS,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CVX,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+CX,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DAL,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DD,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DE,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DECK,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DELL,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DEO,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DHR,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DIA,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DISN,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DOCU,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+DOW,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+E,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EBAY,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ECL,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EEM,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EFA,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EFX,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EQNR,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ERIC,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ESGU,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ETHA,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ETSY,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EWJ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EWY,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+EWZ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+F,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FCX,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FDX,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FISV,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FMX,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FNMA,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FSLR,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+FXI,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GDX,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GE,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GEV,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GFI,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GGB,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GILD,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GLD,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GLNG,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GLOB,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GLW,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GM,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GOOGL,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GPRK,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GRMN,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GS,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GSK,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+GT,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HAL,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HAPV3,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HD,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HDB,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HIMS,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HL,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HMC,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HMY,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HOG,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HON,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HOOD,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HPQ,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HSBC,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HSY,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HUT,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+HWM,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IBB,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IBIT,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IBKR,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IBM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IBN,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ICLN,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IEMG,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IEUR,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IFF,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IJH,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ILF,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+INFY,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ING,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+INTC,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IP,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IREN,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ISRG,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ITA,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ITUB,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ITUB3,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IVE,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IVV,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IVW,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+IWM,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JCI,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JD,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JMIA,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JNJ,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JOYY,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+JPM,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KB,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KEP,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KGC,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KLAC,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KMB,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KO,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+KOFM,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LAC,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LAR,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LIN,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LLY,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LMT,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LND,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LRCX,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LREN3,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LVS,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+LYG,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MA,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MCD,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MDLZ,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MDT,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MELI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+META,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MFG,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MGLU3,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MMM,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MO,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MOS,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MP,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MRK,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MRNA,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MRVL,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MS,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MSFT,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MSI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MSTR,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MU,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MUFG,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+MUX,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NATU3,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NBIS,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NEE,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NEM,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NFLX,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NG,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NGG,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NIO,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NKE,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NMR,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NOKA,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NOW,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NTES,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NTRA,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NU,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NUE,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NVDA,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NVO,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NVS,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+NXE,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+OKLO,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ONDS,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ORCL,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ORLY,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+OXY,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PAAS,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PAC,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PAGS,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PANW,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PATH,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PBI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PBR,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PCAR,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PDD,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PEP,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PETR3,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PFE,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PG,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PHG,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PINS,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PKS,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PLD,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PLTR,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PM,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PRIO3,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PSQ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PSX,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+PYPL,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+QCOM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+QQQ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RACE,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RBLX,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RENT3,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RGTI,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RIO,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RIOT,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RKLB,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ROKU,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ROST,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RSP,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+RTX,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SAN,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SAP,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SATL,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SBS,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SBSP3,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SBUX,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SCCO,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SCHW,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SDA,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SE,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SH,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SHEL,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SHOP,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SHW,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SID,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SIEGY,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SKHY,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SLB,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SLV,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SMH,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SNA,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SNAP,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SNDK,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SNOW,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SONY,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPCE,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPCX,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPGI,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPHQ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPOT,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPXL,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SPY,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+STLA,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+STNE,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SUZ,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SUZB3,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SWKS,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+SYY,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+T,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TCOM,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TEAM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TEM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TEN,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TGT,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TIMB,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TIMS3,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TJX,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TLN,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TM,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TMO,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TMUS,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TQQQ,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TRIP,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TRVV,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TSLA,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TSM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TTE,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TV,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TWLO,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TXN,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+TXR,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UAL,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UBER,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UGP,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UL,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UNH,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UNP,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+UPST,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+URA,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+URBN,cedear,Consumo Discrecional,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+USB,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+USO,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+V,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VALE,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VALE3,cedear,Materiales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VEA,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VIG,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VIST,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VIV,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VIVT3,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VOD,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VRSN,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VRTX,cedear,Salud,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VST,cedear,Servicios Públicos,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VXX,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+VZ,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WBO,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WDC,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WEGE3,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WELL,cedear,Servicios Financieros / Real Estate,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WFC,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+WMT,cedear,Consumo Básico,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLB,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLC,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLE,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLF,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLI,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLK,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLP,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLRE,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLU,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLV,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XLY,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XME,cedear,,etf,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XOM,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XP,cedear,Servicios Financieros,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XPEV,cedear,Industriales,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XROX,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+XYZ,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+YELP,cedear,Comunicaciones,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+YZCA,cedear,Energía,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+ZM,cedear,Tecnología De La Información,company,,,,,,IAMC Informes de CEDEARs 24/09/2026,2026-09-24
+AL30,bono,,,national,,step_up,BONO,,Descripción IOL + fuentes oficiales de emisión,2026-09-25
+BA37D,bono,,,provincial,,,,,Descripción IOL + BYMA títulos públicos,2026-09-25
+T30A7,bono,,,national,fixed,capitalizable,BONCAP,,Descripción IOL + fuentes oficiales de emisión,2026-09-25
+S30S6,letra,,,national,fixed,capitalizable,LECAP,,https://www.argentina.gob.ar/noticias/resultado-de-licitacion-de-lecap-boncap-boncer-letamar-bono-tamar-y-lelink,2026-09-25
+D30S6,letra,,,national,dollar_linked,,LELINK,,https://www.argentina.gob.ar/noticias/resultado-de-licitacion-de-lecap-boncap-boncer-letamar-bono-tamar-y-lelink,2026-09-25

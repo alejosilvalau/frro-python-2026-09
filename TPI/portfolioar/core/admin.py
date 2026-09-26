@@ -28,6 +28,28 @@ class BrokerAdmin(admin.ModelAdmin):
 
 @admin.register(Stock)
 class StockAdmin(admin.ModelAdmin):
-    list_display = ('ticker', 'company_name', 'sector')
+    list_display = (
+        'ticker', 'company_name', 'tipo', 'trading_currency', 'sector', 'cedear_kind', 'issuer_type',
+        'rate_reference', 'classification_manual',
+    )
     search_fields = ('ticker', 'company_name')
-    list_filter = ('sector',)
+    list_filter = ('tipo', 'trading_currency', 'sector', 'cedear_kind', 'issuer_type', 'rate_reference', 'classification_manual')
+    fieldsets = (
+        ('Instrumento', {'fields': ('ticker', 'company_name', 'tipo', 'trading_currency', 'sector')}),
+        ('Clasificación', {'fields': (
+            'cedear_kind', 'issuer_type', 'rate_reference', 'payment_style',
+            'instrument_family', 'underlying_ticker',
+        )}),
+        ('Procedencia y control manual', {'fields': (
+            'classification_source', 'classification_date', 'classification_manual',
+        )}),
+    )
+
+    def save_model(self, request, obj, form, change):
+        classified_fields = {
+            'sector', 'cedear_kind', 'issuer_type', 'rate_reference', 'payment_style',
+            'instrument_family', 'underlying_ticker',
+        }
+        if change and classified_fields.intersection(form.changed_data):
+            obj.classification_manual = True
+        super().save_model(request, obj, form, change)
