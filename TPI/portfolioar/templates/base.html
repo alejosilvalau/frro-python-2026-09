@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if user.is_authenticated %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
     <title>{% block title %}PortfolioAR{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +40,7 @@
             <div class="topbar-actions">
                 {% if user.is_authenticated %}
                 <span class="live-clock" id="live-clock" aria-label="Hora actual"></span>
-                <a class="topbar-icon" href="{% url 'alerts:alert_list' %}" aria-label="Ver alertas" title="Alertas"><i class="fa-regular fa-bell"></i></a>
+                <a class="topbar-icon position-relative" href="{% url 'alerts:alert_list' %}" aria-label="Ver alertas" title="Alertas"><i class="fa-regular fa-bell"></i><span id="alert-new-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" aria-label="Alertas disparadas nuevas"></span></a>
                 <div class="dropdown">
                     <a class="user-menu dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="user-avatar">{{ user.first_name|default:user.username|slice:':1'|upper }}</span>
@@ -60,6 +61,7 @@
         </header>
 
         <main class="content-area">
+            {% if user.is_authenticated %}<div id="alert-toast-container" class="toast-container position-fixed top-0 end-0 p-3" aria-live="polite"></div>{% endif %}
             {% if messages %}
             <div class="toast-container position-fixed top-0 end-0 p-3">
             {% for message in messages %}
@@ -90,6 +92,47 @@
         const updateClock = () => { liveClock.textContent = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date()); };
         updateClock(); window.setInterval(updateClock, 1000);
     }
+    {% if user.is_authenticated %}
+    const alertToastContainer = document.querySelector('#alert-toast-container');
+    const alertBadge = document.querySelector('#alert-new-count');
+    const showAlertToast = (message, isWarning = false) => {
+        const toast = document.createElement('div');
+        toast.className = `toast border-0 ${isWarning ? 'text-bg-warning' : 'text-bg-info'}`;
+        toast.setAttribute('role', 'status');
+        const body = document.createElement('div');
+        body.className = 'toast-body';
+        body.textContent = message;
+        toast.appendChild(body);
+        alertToastContainer.appendChild(toast);
+        bootstrap.Toast.getOrCreateInstance(toast, { delay: 8000 }).show();
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    };
+    const checkAlerts = async () => {
+        try {
+            const response = await fetch('{% url "alerts:alert_check" %}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'No se pudieron comprobar las alertas.');
+            if (result.triggers.length) {
+                alertBadge.textContent = result.triggers.length;
+                alertBadge.classList.remove('d-none');
+                result.triggers.forEach(trigger => showAlertToast(`Alerta disparada: ${trigger.name} (${trigger.ticker}). Revisá el historial en Alertas.`));
+            }
+            if (result.stats?.skipped) {
+                const tickers = [...new Set(result.stats.unavailable)].join(', ');
+                showAlertToast(`No se pudieron evaluar ${result.stats.skipped} alerta(s) por datos históricos faltantes${tickers ? `: ${tickers}` : ''}.`, true);
+            }
+        } catch (error) {
+            showAlertToast(error.message || 'No se pudieron comprobar las alertas.', true);
+        }
+    };
+    document.querySelector('.topbar-icon')?.addEventListener('click', () => alertBadge.classList.add('d-none'));
+    window.setTimeout(checkAlerts, 1000);
+    window.setInterval(checkAlerts, 60 * 1000);
+    {% endif %}
     </script>
     {% block extra_js %}{% endblock %}
 </body>

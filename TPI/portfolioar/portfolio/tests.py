@@ -54,7 +54,7 @@ class PositionModelTest(PortfolioTestBase):
     def setUp(self):
         super().setUp()
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 2)
         )
 
     def test_position_creation(self):
@@ -68,6 +68,42 @@ class PositionModelTest(PortfolioTestBase):
 
 
 class PurchaseCurrencyTest(PortfolioTestBase):
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('7.05'))
+    @patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos'))
+    def test_usd_quote_is_converted_before_ars_valuation(self, mock_quote, mock_price):
+        self.stock.trading_currency = 'USD'
+        self.stock.save(update_fields=['trading_currency'])
+        position = self.portfolio_manager.add_position(
+            self.user.id, self.stock.id, self.broker.id, 1, Decimal('7.05'),
+            datetime(2024, 1, 2), purchase_currency='USD', price_input_currency='USD',
+        )
+
+        performance = self.portfolio_manager.calculate_position_performance(position)
+
+        self.assertEqual(performance['invested_amount'], Decimal('705.0000'))
+        self.assertEqual(performance['current_value'], Decimal('705.00'))
+        self.assertEqual(performance['current_value_usd'], Decimal('7.05'))
+        self.assertEqual(performance['profit_loss'], Decimal('0'))
+        self.assertEqual(performance['profit_loss_percentage'], Decimal('0'))
+
+    @patch('portfolio.business.get_ccl_rate', side_effect=ValueError('sin CCL'))
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('7.05'))
+    @patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos'))
+    def test_usd_quote_without_current_ccl_does_not_claim_ars_value(self, mock_quote, mock_price, mock_ccl):
+        self.stock.trading_currency = 'USD'
+        self.stock.save(update_fields=['trading_currency'])
+        position = self.portfolio_manager.add_position(
+            self.user.id, self.stock.id, self.broker.id, 1, Decimal('7.05'),
+            datetime(2024, 1, 2), purchase_currency='USD', price_input_currency='USD',
+        )
+
+        performance = self.portfolio_manager.calculate_position_performance(position)
+
+        self.assertIsNone(performance['current_value'])
+        self.assertIsNone(performance['profit_loss'])
+        self.assertTrue(performance['price_unavailable'])
+        self.assertEqual(performance['current_value_usd'], Decimal('7.05'))
+
     def test_ars_species_rejects_usd_payment_without_debit(self):
         with self.assertRaisesRegex(ValueError, 'se negocia en ARS'):
             self.portfolio_manager.add_position(
@@ -115,7 +151,7 @@ class InstrumentDistributionTest(PortfolioTestBase):
         stocks = [self.stock, company_cedear, etf, bond]
         positions = [
             self.portfolio_manager.add_position(
-                self.user.id, stock.id, self.broker.id, 1, Decimal('100'), datetime(2024, 1, 1)
+                self.user.id, stock.id, self.broker.id, 1, Decimal('100'), datetime(2024, 1, 2)
             )
             for stock in stocks
         ]
@@ -143,7 +179,7 @@ class LotModelTest(PortfolioTestBase):
     def setUp(self):
         super().setUp()
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 2)
         )
         self.lot = self.lot_manager.add_lot(
             self.position.id, 5, 16000.00, datetime(2024, 1, 15), fees=100.00
@@ -188,7 +224,7 @@ class PortfolioManagerTest(PortfolioTestBase):
     def setUp(self):
         super().setUp()
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 2)
         )
 
     def test_calculate_position_performance(self):
@@ -336,6 +372,17 @@ class PortfolioManagerTest(PortfolioTestBase):
         mock_history.assert_called_once_with(self.stock.ticker)
 
     @patch('portfolio.business.get_historical_prices')
+    def test_nonfinite_indicator_does_not_become_false_zero_for_alert(self, mock_history):
+        import pandas as pd
+
+        mock_history.return_value = pd.DataFrame({
+            'Close': [float('nan')] * 60,
+            'Volume': [0] * 60,
+        })
+
+        self.assertEqual(self.portfolio_manager.get_alert_indicator_values(self.stock, {'rsi'}), {})
+
+    @patch('portfolio.business.get_historical_prices')
     @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('123.45'))
     def test_price_alert_does_not_request_historical_prices(self, mock_price, mock_history):
         values = self.portfolio_manager.get_alert_indicator_values(self.stock, {'precio'})
@@ -412,7 +459,7 @@ class PortfolioManagerTest(PortfolioTestBase):
         with self.assertRaises(RuntimeError):
             self.portfolio_manager.add_position(
                 self.user.id, self.stock.id, self.broker.id, 1, 15000.00,
-                datetime(2024, 1, 1)
+                datetime(2024, 1, 2)
             )
 
         self.assertEqual(Position.objects.filter(user=self.user).count(), positions_before)
@@ -448,7 +495,7 @@ class SaleFIFOTest(PortfolioTestBase):
     def setUp(self):
         super().setUp()
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 15000.00, datetime(2024, 1, 2)
         )
         self.lot2 = self.lot_manager.add_lot(
             self.position.id, 10, 20000.00, datetime(2024, 2, 1)
@@ -639,7 +686,7 @@ class PositionCreateViewTest(PortfolioTestBase):
             'broker_id': self.broker.id,
             'amount': '10',
             'price': '1000',
-            'purchased_at': '2024-01-01T10:00',
+            'purchased_at': '2024-01-02T10:00',
             'purchase_currency': 'ARS',
         }
 
@@ -745,13 +792,23 @@ class PositionDetailViewTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 2)
         )
 
     def test_get_requires_login(self):
         anon_client = Client()
         resp = anon_client.get(reverse('portfolio:position_detail', args=[self.position.id]))
         self.assertEqual(resp.status_code, 302)
+
+    @patch('portfolio.business.get_historical_prices', return_value=None)
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('1000'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=None)
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=None)
+    def test_missing_history_does_not_display_fake_zero_indicators(self, *mocks):
+        response = self.client.get(reverse('portfolio:position_detail', args=[self.position.id]))
+
+        self.assertContains(response, 'No hay suficientes precios históricos')
+        self.assertNotContains(response, 'Sobrevendido')
 
     def test_other_users_position_returns_404(self):
         other_user = User.objects.create_user(
@@ -812,7 +869,7 @@ class LotViewsTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 2)
         )
 
     def test_get_requires_login(self):
@@ -889,7 +946,7 @@ class SaleViewTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 2)
         )
 
     def test_get_shows_open_summary(self):
@@ -935,7 +992,7 @@ class PositionDeleteViewTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 2)
         )
 
     def test_delete_without_sales_refunds_cash_and_removes_position(self):
@@ -1024,7 +1081,7 @@ class DashboardAndListViewsTest(PortfolioTestBase):
         self.client = Client()
         self.client.force_login(self.user)
         self.position = self.portfolio_manager.add_position(
-            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 1)
+            self.user.id, self.stock.id, self.broker.id, 10, 1000.0, datetime(2024, 1, 2)
         )
 
     def test_dashboard_requires_login(self):
@@ -1162,3 +1219,21 @@ class Sp500ReturnDataAccessTest(TestCase):
         result = get_sp500_return(datetime(2024, 1, 1).date(), datetime(2024, 1, 3).date())
 
         self.assertIsNone(result)
+
+
+class BymaHistoricalPricesTest(TestCase):
+    @patch('yfinance.Ticker')
+    def test_uses_byma_symbol_not_unqualified_us_ticker(self, mock_ticker_cls):
+        from portfolio.data_access import get_historical_prices
+
+        get_historical_prices('AGRO')
+
+        mock_ticker_cls.assert_called_once_with('AGRO.BA')
+
+    @patch('yfinance.Ticker')
+    def test_does_not_append_market_twice(self, mock_ticker_cls):
+        from portfolio.data_access import get_historical_prices
+
+        get_historical_prices('AGRO.BA')
+
+        mock_ticker_cls.assert_called_once_with('AGRO.BA')

@@ -340,6 +340,42 @@ class AlertViewsTest(TestCase):
         resp = anon_client.get(reverse('alerts:alert_list'))
         self.assertEqual(resp.status_code, 302)
 
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={'rsi': 75})
+    def test_check_evaluates_only_current_user_and_reports_new_trigger_once(self, mock_values):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='Mi RSI')
+        alert.conditions.add(self.condition)
+        other_user = User.objects.create_user(email='otro@example.com', password='testpass123')
+        other_alert = Alert.objects.create(user=other_user, stock=self.stock, name='Otra alerta')
+        other_alert.conditions.add(self.condition)
+
+        first = self.client.post(reverse('alerts:alert_check'))
+        second = self.client.post(reverse('alerts:alert_check'))
+
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(first.json()['checked'])
+        self.assertEqual(first.json()['stats']['triggered'], 1)
+        self.assertEqual(first.json()['triggers'][0]['name'], 'Mi RSI')
+        self.assertFalse(second.json()['checked'])
+        self.assertEqual(second.json()['triggers'], [])
+        self.assertEqual(AlertTrigger.objects.filter(alert=alert).count(), 1)
+        self.assertFalse(AlertTrigger.objects.filter(alert=other_alert).exists())
+        mock_values.assert_called_once()
+
+    @patch('alerts.business.PortfolioManager.get_alert_indicator_values', return_value={})
+    def test_check_reports_missing_indicator_without_false_trigger(self, mock_values):
+        alert = Alert.objects.create(user=self.user, stock=self.stock, name='Mi RSI')
+        alert.conditions.add(self.condition)
+
+        response = self.client.post(reverse('alerts:alert_check'))
+
+        self.assertEqual(response.json()['stats']['skipped'], 1)
+        self.assertEqual(response.json()['stats']['unavailable'], [self.stock.ticker])
+        self.assertFalse(AlertTrigger.objects.exists())
+
+    def test_check_requires_post_and_login(self):
+        self.assertEqual(self.client.get(reverse('alerts:alert_check')).status_code, 405)
+        self.assertEqual(Client().post(reverse('alerts:alert_check')).status_code, 302)
+
     def test_alert_create_get(self):
         resp = self.client.get(reverse('alerts:alert_create'))
         self.assertEqual(resp.status_code, 200)

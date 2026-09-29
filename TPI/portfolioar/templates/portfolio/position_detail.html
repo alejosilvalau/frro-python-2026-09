@@ -99,7 +99,7 @@
         <section class="comparison-card">
             <h2 class="comparison-title">Comparación S&amp;P 500</h2>
             <div class="comparison-result {% if sp500.alpha is None %}metric-neutral{% elif sp500.alpha >= 0 %}metric-positive{% else %}metric-negative{% endif %}">{% if sp500.alpha is None %}No disponible{% else %}{{ sp500.alpha|floatformat:2 }}%{% endif %}</div>
-            <div class="comparison-line"><span>Tu rendimiento</span><strong class="{% if sp500.position_return_usd is not None and sp500.position_return_usd >= 0 %}metric-positive{% elif sp500.position_return_usd is not None %}metric-negative{% endif %}">{% if sp500.position_return_usd is None %}No disponible{% else %}{{ sp500.position_return_usd|floatformat:2 }}%{% endif %}</strong></div>
+            <div class="comparison-line"><span>Tu rendimiento (USD)</span><strong class="{% if sp500.position_return_usd is not None and sp500.position_return_usd >= 0 %}metric-positive{% elif sp500.position_return_usd is not None %}metric-negative{% endif %}">{% if sp500.position_return_usd is None %}No disponible{% else %}{{ sp500.position_return_usd|floatformat:2 }}%{% endif %}</strong></div>
             <div class="comparison-line"><span>S&amp;P 500{% if sp500.sp500_is_annual_fallback %} <small class="text-muted">(12 meses)</small>{% endif %}</span><strong class="{% if sp500.sp500_return is not None and sp500.sp500_return >= 0 %}metric-positive{% elif sp500.sp500_return is not None %}metric-negative{% endif %}">{% if sp500.sp500_return is None %}No disponible{% else %}{{ sp500.sp500_return|floatformat:2 }}%{% endif %}</strong></div>
             <div class="comparison-line"><span>Alpha</span><strong class="{% if sp500.alpha is not None and sp500.alpha >= 0 %}metric-positive{% elif sp500.alpha is not None %}metric-negative{% endif %}">{% if sp500.alpha is None %}No disponible{% else %}{{ sp500.alpha|floatformat:2 }}%{% endif %}</strong></div>
         </section>
@@ -122,6 +122,9 @@
                 <h5 class="mb-0">Indicadores Técnicos</h5>
             </div>
             <div class="card-body">
+                {% if indicators is None %}
+                <p class="text-muted mb-0">No hay suficientes precios históricos de esta especie en BYMA para calcular indicadores técnicos. Las alertas que dependan de ellos no se evaluarán hasta que haya datos.</p>
+                {% else %}
                 <div class="row">
                     <div class="col-md-3">
                         <p><strong>RSI:</strong> {{ indicators.rsi|floatformat:2 }}</p>
@@ -135,15 +138,16 @@
                         <p><strong>Histograma:</strong> {{ indicators.macd_histogram|floatformat:2 }}</p>
                     </div>
                     <div class="col-md-3">
-                        <p><strong>SMA 20:</strong> ${{ indicators.sma_20|floatformat:2 }}</p>
-                        <p><strong>SMA 50:</strong> ${{ indicators.sma_50|floatformat:2 }}</p>
-                        <p><strong>EMA 30:</strong> ${{ indicators.ema_30|floatformat:2 }}</p>
+                        <p><strong>SMA 20:</strong> {% if position.stock.trading_currency == 'USD' %}U$D{% else %}${% endif %}{{ indicators.sma_20|floatformat:2 }}</p>
+                        <p><strong>SMA 50:</strong> {% if position.stock.trading_currency == 'USD' %}U$D{% else %}${% endif %}{{ indicators.sma_50|floatformat:2 }}</p>
+                        <p><strong>EMA 30:</strong> {% if position.stock.trading_currency == 'USD' %}U$D{% else %}${% endif %}{{ indicators.ema_30|floatformat:2 }}</p>
                     </div>
                     <div class="col-md-3">
                         <p><strong>Volumen Relativo:</strong> {{ indicators.volume_relative|floatformat:2 }}</p>
                         <p><strong>Volatilidad:</strong> {{ indicators.volatility|floatformat:2 }}%</p>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>

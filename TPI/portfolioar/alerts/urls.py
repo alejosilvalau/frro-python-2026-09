@@ -5,6 +5,7 @@ app_name = 'alerts'
 
 urlpatterns = [
     path('', views.alert_list, name='alert_list'),
+    path('check/', views.alert_check, name='alert_check'),
     path('create/', views.alert_create, name='alert_create'),
     path('<int:alert_id>/', views.alert_detail, name='alert_detail'),
     path('<int:alert_id>/update/', views.alert_update, name='alert_update'),

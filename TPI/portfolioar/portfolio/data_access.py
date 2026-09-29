@@ -187,7 +187,11 @@ def get_sp500_return(start_date, end_date):
 
 def get_historical_prices(ticker, period='6mo'):
     import yfinance as yf
-    return yf.Ticker(ticker).history(period=period, auto_adjust=True)
+    # El catálogo de instrumentos y las cotizaciones de IOL son de BYMA.
+    # Un ticker sin mercado puede identificar otra empresa (AGRO = Adecoagro
+    # en Yahoo, mientras que AGRO.BA = Agrometal). Nunca usarlo como fallback.
+    symbol = ticker if ticker.upper().endswith('.BA') else f'{ticker}.BA'
+    return yf.Ticker(symbol).history(period=period, auto_adjust=True)
 
 
 def get_positions_by_user(user_id):

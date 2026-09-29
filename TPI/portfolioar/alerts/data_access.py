@@ -59,9 +59,12 @@ def get_alerts_by_user(user_id):
     return Alert.objects.filter(user_id=user_id)
 
 
-def get_active_alerts():
+def get_active_alerts(user_id=None):
+    alerts = Alert.objects.filter(is_active=True)
+    if user_id is not None:
+        alerts = alerts.filter(user_id=user_id)
     return (
-        Alert.objects.filter(is_active=True)
+        alerts
         .select_related('stock')
         .prefetch_related('conditions__indicator')
     )

@@ -10,6 +10,7 @@
     </div>
     <a href="{% url 'alerts:alert_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva alerta</a>
 </div>
+<p class="text-muted small">Las alertas se comprueban cada 15 minutos mientras el sitio está abierto. Para recibir disparos cuando está cerrado, también debe ejecutarse el evaluador periódico del servidor.</p>
 
 <div class="row">
     <div class="col-12">
@@ -24,6 +25,7 @@
                                 <th>Acción</th>
                                 <th>Estado</th>
                                 <th>Fecha Creación</th>
+                                <th>Último disparo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -40,6 +42,7 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ alert.created_at|date:"d/m/Y" }}</td>
+                                <td>{% if alert.last_trigger_at %}{{ alert.last_trigger_at|date:"d/m/Y H:i" }}{% else %}Sin disparos{% endif %}</td>
                                 <td>
                                     <a href="{% url 'alerts:alert_detail' alert.id %}" class="btn btn-primary btn-sm">Gestionar</a>
                                     <form method="post" action="{% url 'alerts:alert_delete' alert.id %}" class="d-inline">

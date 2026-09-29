@@ -401,16 +401,6 @@ class PortfolioManager:
             'avg_cost_usd': avg_cost_usd,
         }
 
-    def _fallback_price(self, position):
-        open_lots = _fetch_open_lots(position.id)
-        avg_cost_local, _, open_amount = fifo.compute_weighted_avg_cost(open_lots)
-        if open_amount > 0:
-            return avg_cost_local
-        lots = list(get_lots_by_position(position.id))
-        if lots:
-            return Decimal(str(lots[-1].price_local))
-        return Decimal('0')
-
     def calculate_position_performance(self, position):
         open_lots = _fetch_open_lots(position.id)
         avg_cost_local, avg_cost_usd, open_amount = fifo.compute_weighted_avg_cost(open_lots)
@@ -436,20 +426,33 @@ class PortfolioManager:
                 profit_loss = None
                 profit_loss_percentage = None
             else:
-                current_value = current_price * open_amount / quote_unit
-                profit_loss = current_value - invested_amount
-                profit_loss_percentage = (profit_loss / invested_amount * 100) if invested_amount > 0 else None
+                ccl = None
                 try:
                     ccl = Decimal(str(get_ccl_rate()))
-                    if ccl <= 0:
+                    if not ccl.is_finite() or ccl <= 0:
                         raise ValueError('CCL inválido')
-                    current_value_usd = (current_price / ccl) * open_amount / quote_unit
-                    profit_loss_percentage_usd = (
-                        (current_value_usd - invested_amount_usd) / invested_amount_usd * 100
-                        if invested_amount_usd > 0 else None
-                    )
                 except Exception:
-                    pass
+                    ccl = None
+
+                quoted_value = current_price * open_amount / quote_unit
+                if position.stock.trading_currency == 'USD':
+                    current_value_usd = quoted_value
+                    current_value = quoted_value * ccl if ccl is not None else None
+                elif position.stock.trading_currency == 'ARS':
+                    current_value = quoted_value
+                    current_value_usd = quoted_value / ccl if ccl is not None else None
+                else:
+                    current_value = None
+
+                profit_loss = current_value - invested_amount if current_value is not None else None
+                profit_loss_percentage = (
+                    profit_loss / invested_amount * 100
+                    if profit_loss is not None and invested_amount > 0 else None
+                )
+                profit_loss_percentage_usd = (
+                    (current_value_usd - invested_amount_usd) / invested_amount_usd * 100
+                    if current_value_usd is not None and invested_amount_usd > 0 else None
+                )
         else:
             # Posición cerrada: no hay acciones abiertas, así que no existe "valor actual"
             # ni P&L no realizado (eso ya se liquidó y volvió como liquidez vía CashManager).
@@ -709,22 +712,12 @@ class PortfolioManager:
     def get_technical_indicators(self, position):
         try:
             df = get_historical_prices(position.stock.ticker)
-            if df is None or len(df) < 30:
+            if df is None or len(df) < 50:
                 raise ValueError("datos insuficientes")
             return self._calculate_technical_indicators(df)
         except Exception:
-            price = self._fallback_price(position)
-            return {
-                'rsi': Decimal('0'),
-                'macd': Decimal('0'),
-                'macd_signal': Decimal('0'),
-                'macd_histogram': Decimal('0'),
-                'sma_20': price,
-                'sma_50': price,
-                'ema_30': price,
-                'volume_relative': Decimal('1'),
-                'volatility': Decimal('0'),
-            }
+            logger.warning('Technical indicators unavailable ticker=%s', position.stock.ticker)
+            return None
 
     def get_alert_indicator_values(self, stock, required_keys=None):
         values = {}
@@ -772,9 +765,12 @@ class PortfolioManager:
 
         def decimal_value(value):
             number = float(value)
-            if math.isnan(number) or math.isinf(number):
-                return Decimal('0')
+            if not math.isfinite(number):
+                raise ValueError('indicador técnico sin datos suficientes')
             return Decimal(str(round(number, 4)))
+
+        if not math.isfinite(vol_relative) or not math.isfinite(volatility):
+            raise ValueError('indicador técnico sin datos suficientes')
 
         return {
             'rsi': decimal_value(rsi_s.iloc[-1]),

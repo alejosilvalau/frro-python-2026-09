@@ -155,10 +155,10 @@ class AlertManager:
     def trigger_alert(self, alert, ai_recommendation='', cooldown=ALERT_COOLDOWN):
         return create_trigger_if_cooldown_elapsed(alert.id, cooldown, ai_recommendation)
 
-    def evaluate_active_alerts(self):
-        alerts = list(get_active_alerts())
+    def evaluate_active_alerts(self, user_id=None):
+        alerts = list(get_active_alerts(user_id))
         values_by_stock = {}
-        stats = {'evaluated': 0, 'triggered': 0, 'cooldown': 0, 'skipped': 0, 'errors': 0}
+        stats = {'evaluated': 0, 'triggered': 0, 'cooldown': 0, 'skipped': 0, 'errors': 0, 'unavailable': []}
         portfolio_manager = PortfolioManager()
 
         alert_entries = []
@@ -167,6 +167,7 @@ class AlertManager:
             conditions = get_conditions_by_alert(alert)
             if not conditions:
                 stats['skipped'] += 1
+                stats['unavailable'].append(alert.stock.ticker)
                 continue
             alert_entries.append((alert, conditions))
             required_by_stock.setdefault(alert.stock_id, set()).update(
@@ -186,6 +187,7 @@ class AlertManager:
             current_values = values_by_stock[alert.stock_id]
             if any(_indicator_key(condition.indicator.name) not in current_values for condition in conditions):
                 stats['skipped'] += 1
+                stats['unavailable'].append(alert.stock.ticker)
                 continue
 
             stats['evaluated'] += 1
