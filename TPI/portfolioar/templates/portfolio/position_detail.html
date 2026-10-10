@@ -87,9 +87,48 @@
     </div>
     <div class="col-sm-6 col-xl-3">
         <section class="stat-card">
-            <div class="stat-card-head"><span class="stat-label">P&amp;L realizado</span><span class="metric-icon {% if performance.realized_pnl_ars < 0 %}red{% else %}green{% endif %}"><i class="fa-solid fa-sack-dollar"></i></span></div>
+            <div class="stat-card-head"><span class="stat-label">P&amp;L realizado</span><span class="metric-icon {% if performance.realized_pnl_ars < 0 %}red{% else %}green{% endif %}"><i class="fa-solid fa-money-bill-wave"></i></span></div>
             <div class="stat-value {% if performance.realized_pnl_ars >= 0 %}metric-positive{% else %}metric-negative{% endif %}">${{ performance.realized_pnl_ars|floatformat:2 }}</div>
             <div class="stat-subvalue">U$D {{ performance.realized_pnl_usd|floatformat:2 }}</div>
+        </section>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Apertura</span><span class="metric-icon cyan"><i class="fa-solid fa-calendar-plus"></i></span></div>
+            <div class="stat-value">{{ position.opened_at|date:"d/m/Y" }}</div>
+            <div class="stat-subvalue">{{ position.opened_at|date:"H:i" }} hs</div>
+        </section>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Primera compra</span><span class="metric-icon cyan"><i class="fa-solid fa-cart-shopping"></i></span></div>
+            <div class="stat-value">{% if first_purchase_date %}{{ first_purchase_date|date:"d/m/Y" }}{% else %}No disponible{% endif %}</div>
+            <div class="stat-subvalue">{% if first_purchase_date %}{{ first_purchase_date|date:"H:i" }} hs{% endif %}</div>
+        </section>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Última venta</span><span class="metric-icon"><i class="fa-solid fa-tag"></i></span></div>
+            {% if last_sale_date %}
+            <div class="stat-value">{{ last_sale_date|date:"d/m/Y" }}</div>
+            <div class="stat-subvalue">{{ sales_count }} venta{{ sales_count|pluralize:"s" }} en total</div>
+            {% else %}
+            <div class="stat-value metric-neutral">Sin ventas</div>
+            {% endif %}
+        </section>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <section class="stat-card">
+            <div class="stat-card-head"><span class="stat-label">Ventana comparación</span><span class="metric-icon"><i class="fa-solid fa-calendar-days"></i></span></div>
+            {% if performance.comparison_start and performance.comparison_end %}
+            <div class="stat-value">{{ performance.comparison_start|date:"d/m/Y" }} – {{ performance.comparison_end|date:"d/m/Y" }}</div>
+            <div class="stat-subvalue">Base S&amp;P 500 e inflación</div>
+            {% else %}
+            <div class="stat-value metric-neutral">No disponible</div>
+            {% endif %}
         </section>
     </div>
 </div>

@@ -823,6 +823,22 @@ class PositionDetailViewTest(PortfolioTestBase):
     @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('5'))
     @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('8'))
     @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('1200'))
+    def test_detail_shows_dates_row(self, *mocks):
+        resp = self.client.get(reverse('portfolio:position_detail', args=[self.position.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNotNone(resp.context['first_purchase_date'])
+        self.assertIsNone(resp.context['last_sale_date'])
+        self.assertEqual(resp.context['sales_count'], 0)
+        self.assertContains(resp, 'Apertura')
+        self.assertContains(resp, 'Primera compra')
+        self.assertContains(resp, 'Sin ventas')
+        self.assertContains(resp, 'Ventana comparaci')
+        self.assertContains(resp, 'fa-money-bill-wave')
+
+    @patch('portfolio.business.get_historical_prices', return_value=None)
+    @patch('portfolio.business.ExternalAPIs.get_indec_inflation', return_value=Decimal('5'))
+    @patch('portfolio.business.ExternalAPIs.get_sp500_performance', return_value=Decimal('8'))
+    @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('1200'))
     def test_shows_unrealized_performance_sp500_and_inflation(self, mock_price, mock_sp500, mock_indec, mock_hist):
         resp = self.client.get(reverse('portfolio:position_detail', args=[self.position.id]))
         self.assertEqual(resp.status_code, 200)

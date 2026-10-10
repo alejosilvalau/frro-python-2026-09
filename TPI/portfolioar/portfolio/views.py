@@ -100,7 +100,9 @@ def position_detail(request, position_id):
     lots_with_remaining = portfolio_manager.get_lots_with_remaining(position_id)
 
     sale_manager = SaleManager()
-    sales = sale_manager.get_position_sales(position_id)
+    sales = list(sale_manager.get_position_sales(position_id))
+    lot_dates = [lot.purchased_at for lot, _ in lots_with_remaining if lot.purchased_at]
+    sale_dates = [sale.sold_at for sale in sales if sale.sold_at]
 
     return render(request, 'portfolio/position_detail.html', {
         'position': position,
@@ -110,6 +112,9 @@ def position_detail(request, position_id):
         'indicators': technical_indicators,
         'lots_with_remaining': lots_with_remaining,
         'sales': sales,
+        'first_purchase_date': min(lot_dates) if lot_dates else position.opened_at,
+        'last_sale_date': max(sale_dates) if sale_dates else None,
+        'sales_count': len(sales),
     })
 
 
