@@ -1200,6 +1200,25 @@ class ApiInstrumentPriceViewTest(PortfolioTestBase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()['quote_error'], 'fuente_no_disponible')
 
+    def test_closed_market_returns_last_available_value(self):
+        friday = datetime(2024, 1, 19).date()
+        with patch('portfolio.views.is_business_day', return_value=False), \
+             patch('portfolio.views.last_business_day', return_value=friday) as mock_last, \
+             patch('portfolio.views.MarketDataManager.get_ccl_for_date') as mock_ccl, \
+             patch('portfolio.views.MarketDataManager.get_quote_for_date') as mock_quote:
+            mock_ccl.return_value = (CclResult(Decimal('1000'), friday), None)
+            mock_quote.return_value = (QuoteResult(Decimal('5000'), 'ARS', friday, 'iol_daily_close'), None)
+            resp = self.client.get(reverse('portfolio:api_instrument_price'),
+                                    {'stock_id': self.stock.id, 'fecha': '2024-01-20'})
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['market_closed'])
+        self.assertEqual(data['requested_date'], '2024-01-20')
+        self.assertEqual(data['date'], '2024-01-19')
+        self.assertEqual(data['price_ars'], 5000.0)
+        mock_last.assert_called_once_with(datetime(2024, 1, 20).date())
+
 
 class Sp500ReturnDataAccessTest(TestCase):
     """yfinance a veces devuelve el día de mercado más reciente sin cerrar (Close=NaN).
@@ -1237,3 +1256,67 @@ class BymaHistoricalPricesTest(TestCase):
         get_historical_prices('AGRO.BA')
 
         mock_ticker_cls.assert_called_once_with('AGRO.BA')
+
+
+class ClosedMarketFallbackTest(TestCase):
+    """Mercado cerrado: se toma el último valor disponible en vez de nada."""
+
+    def setUp(self):
+        self.stock = Stock.objects.create(
+            ticker='GGAL', company_name='Grupo Financiero Galicia',
+            tipo='accion', trading_currency='ARS',
+        )
+
+    def test_quote_falls_back_to_previous_close(self):
+        from django.utils import timezone
+        from portfolio.business import MarketDataManager
+
+        today = timezone.now().date()
+        cursor = today - timedelta(days=1)
+        while cursor.weekday() >= 5:
+            cursor -= timedelta(days=1)
+
+        with patch('portfolio.business.get_iol_quote', return_value={'ultimoPrecio': None, 'moneda': 'ars'}), \
+             patch('portfolio.business.get_iol_daily_series') as mock_series:
+            def series(ticker, start, end, mercado='bCBA'):
+                if start == today:
+                    return []
+                return [{'ultimoPrecio': 5000.0, 'moneda': 'ars', 'fechaHora': '2024-01-19T17:00:00'}]
+            mock_series.side_effect = series
+
+            quote, error = MarketDataManager().get_quote_for_date(self.stock, today)
+
+        self.assertIsNone(error)
+        self.assertEqual(quote.price, Decimal('5000'))
+        self.assertEqual(quote.quote_date, cursor)
+        self.assertEqual(quote.source, 'iol_daily_close')
+
+    def test_quote_stops_on_source_error(self):
+        from django.utils import timezone
+        from portfolio.business import MarketDataManager
+
+        day = timezone.now().date() - timedelta(days=30)
+        with patch('portfolio.business.get_iol_daily_series', side_effect=ValueError('down')) as mock_series:
+            quote, error = MarketDataManager().get_quote_for_date(self.stock, day)
+
+        self.assertIsNone(quote)
+        self.assertEqual(error, 'fuente_no_disponible')
+        self.assertEqual(mock_series.call_count, 1)
+
+    def test_ccl_falls_back_to_previous_day(self):
+        from portfolio.business import MarketDataManager
+
+        day = datetime(2024, 1, 22).date()  # lunes
+        with patch('portfolio.business.get_historical_ccl') as mock_ccl:
+            mock_ccl.side_effect = [None, {'venta': '1200'}]
+            ccl, error = MarketDataManager().get_ccl_for_date(day)
+
+        self.assertIsNone(error)
+        self.assertEqual(ccl.rate, Decimal('1200'))
+        self.assertEqual(ccl.ccl_date, datetime(2024, 1, 19).date())  # viernes previo
+
+    def test_current_price_uses_last_close_when_realtime_empty(self):
+        with patch('portfolio.business.get_stock_price_from_iol', return_value=None), \
+             patch('portfolio.business.get_iol_daily_series',
+                   return_value=[{'ultimoPrecio': 99.0}, {'ultimoPrecio': None}]):
+            self.assertEqual(ExternalAPIs.get_current_price('GGAL'), Decimal('99'))

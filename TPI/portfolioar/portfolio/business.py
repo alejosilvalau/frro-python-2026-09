@@ -161,25 +161,30 @@ def _validate_operation_datetime(value, field_name):
 
 
 class MarketDataManager:
+    # Mercado cerrado (fin de semana, feriado, rueda sin datos): cuántos días
+    # hacia atrás buscar el último valor disponible antes de rendirse.
+    QUOTE_LOOKBACK_DAYS = 10
+    CCL_LOOKBACK_DAYS = 10
+
     @staticmethod
     def _currency(value):
         return normalize_iol_currency(value)
 
-    def get_quote_for_date(self, stock, day):
-        today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
+    def _fetch_quote_for_day(self, stock, day, today):
+        """Cotización de un día puntual, sin fallback. Devuelve (quote, error)."""
         try:
             if day == today:
                 raw = get_iol_quote(stock.ticker)
                 price = raw.get('ultimoPrecio')
-                if price is None:
-                    return None, 'sin_datos'
-                currency = self._currency(raw.get('moneda')) or stock.trading_currency
-                if currency is None:
-                    return None, 'sin_datos'
-                return QuoteResult(
-                    Decimal(str(price)), currency, day,
-                    'iol_realtime', raw.get('fechaHora'),
-                ), None
+                if price is not None:
+                    currency = self._currency(raw.get('moneda')) or stock.trading_currency
+                    if currency is None:
+                        return None, 'sin_datos'
+                    return QuoteResult(
+                        Decimal(str(price)), currency, day,
+                        'iol_realtime', raw.get('fechaHora'),
+                    ), None
+                # Tiempo real sin precio (mercado cerrado): cae al cierre diario.
 
             rows = get_iol_daily_series(stock.ticker, day, day + timedelta(days=1))
             if not rows:
@@ -198,7 +203,28 @@ class MarketDataManager:
         except Exception:
             return None, 'fuente_no_disponible'
 
-    def get_ccl_for_date(self, day):
+    def get_quote_for_date(self, stock, day, max_lookback=QUOTE_LOOKBACK_DAYS):
+        """Último valor disponible al día pedido; si el mercado está cerrado
+        retrocede día por día (solo ante 'sin_datos', nunca ante errores de
+        fuente para no multiplicar llamadas fallidas)."""
+        today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
+        quote, error = self._fetch_quote_for_day(stock, day, today)
+        if quote is not None or error != 'sin_datos':
+            return quote, error
+        cursor = day
+        for _ in range(max_lookback):
+            cursor -= timedelta(days=1)
+            while cursor.weekday() >= 5:
+                cursor -= timedelta(days=1)
+            quote, error = self._fetch_quote_for_day(stock, cursor, today)
+            if quote is not None:
+                return quote, None
+            if error != 'sin_datos':
+                return None, error
+        return None, 'sin_datos'
+
+    def _fetch_ccl_for_day(self, day):
+        """CCL de un día puntual, sin fallback. Devuelve (ccl, error)."""
         try:
             raw = get_historical_ccl(day)
             if not raw:
@@ -212,6 +238,24 @@ class MarketDataManager:
             return CclResult(rate, day), None
         except Exception:
             return None, 'fuente_no_disponible'
+
+    def get_ccl_for_date(self, day, max_lookback=CCL_LOOKBACK_DAYS):
+        """Último CCL disponible al día pedido; retrocede ante 'sin_datos'
+        (fin de semana / feriado sin cotización)."""
+        ccl, error = self._fetch_ccl_for_day(day)
+        if ccl is not None or error != 'sin_datos':
+            return ccl, error
+        cursor = day
+        for _ in range(max_lookback):
+            cursor -= timedelta(days=1)
+            while cursor.weekday() >= 5:
+                cursor -= timedelta(days=1)
+            ccl, error = self._fetch_ccl_for_day(cursor)
+            if ccl is not None:
+                return ccl, None
+            if error != 'sin_datos':
+                return None, error
+        return None, 'sin_datos'
 
     def resolve_operation_pricing(
         self, stock, operation_dt, price, price_input_currency,
@@ -312,7 +356,8 @@ class ExternalAPIs:
                 'IOL current price missing ticker=%s market=%s reason=ultimoPrecio_null',
                 ticker, mercado,
             )
-            return None
+            # Mercado cerrado: último cierre disponible en vez de nada.
+            return ExternalAPIs.get_last_close_price(ticker, mercado)
         except Exception as error:
             response = getattr(error, 'response', None)
             status = getattr(response, 'status_code', None)
@@ -321,6 +366,22 @@ class ExternalAPIs:
                 ticker, mercado, type(error).__name__, status if status is not None else 'none',
             )
             return None
+
+    @staticmethod
+    def get_last_close_price(ticker, mercado='bCBA', lookback_days=7):
+        """Último cierre diario disponible (para mercado cerrado). None si no hay."""
+        today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
+        try:
+            rows = get_iol_daily_series(
+                ticker, today - timedelta(days=lookback_days), today + timedelta(days=1), mercado,
+            )
+        except Exception:
+            return None
+        for raw in reversed(rows or []):
+            price = (raw or {}).get('ultimoPrecio')
+            if price is not None:
+                return Decimal(str(price))
+        return None
 
 
 class PortfolioManager:

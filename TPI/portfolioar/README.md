@@ -56,6 +56,14 @@ python manage.py shell                    # consola ORM
 pytest                                    # 199 tests (SQLite en memoria)
 ```
 
+## Problemas comunes
+
+- **Dashboard muestra "No disponible" en rendimientos**: suele ser catálogo
+  desactualizado (al instrumento le falta la moneda de negociación).
+  Actualizar con `python manage.py seed_instruments_from_iol`
+  (requiere `IOL_USER`/`IOL_PASSWORD` en `.env`). Un fin de semana o feriado
+  usa automáticamente el último valor disponible.
+
 ## Rutas principales
 
 `/auth/register/` · `/auth/login/` · `/portfolio/` (dashboard) ·

@@ -107,7 +107,7 @@
         if (!response.ok) {
           pricingBlocked = true;
           if (submitButton && !purchaseForm) submitButton.disabled = true;
-          if (priceStatus) priceStatus.textContent = data.error === 'dia_no_habil' ? `Día no hábil. Último hábil: ${data.last_business_day}` : 'Fecha inválida';
+          if (priceStatus) priceStatus.textContent = 'Fecha inválida';
           updateTotal();
           return;
         }
@@ -125,7 +125,8 @@
         if (data.prices) {
           arsInput.value = data.prices.ARS || '';
           usdInput.value = data.prices.USD || '';
-          if (priceStatus) priceStatus.textContent = data.quote ? `Automático · ${data.quote.source}` : 'Precio manual';
+          const closedNote = data.market_closed ? ` (mercado cerrado, último valor ${data.date})` : '';
+          if (priceStatus) priceStatus.textContent = data.quote ? `Automático · ${data.quote.source}${closedNote}` : `Precio manual${closedNote}`;
         }
         setEditableCurrency();
         updateTotal();

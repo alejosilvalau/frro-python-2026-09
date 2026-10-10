@@ -349,11 +349,11 @@ def api_instrument_price(request):
         today = timezone.localdate() if settings.USE_TZ else timezone.now().date()
         if day > today:
             return JsonResponse({'error': 'fecha_futura'}, status=400)
-        if not is_business_day(day):
-            return JsonResponse({
-                'error': 'dia_no_habil',
-                'last_business_day': last_business_day(day).isoformat(),
-            }, status=400)
+        # Mercado cerrado (fin de semana / feriado): último valor disponible.
+        requested_date = day.isoformat()
+        market_closed = not is_business_day(day)
+        if market_closed:
+            day = last_business_day(day)
 
         manager = MarketDataManager()
         ccl, ccl_error = manager.get_ccl_for_date(day)
@@ -377,6 +377,8 @@ def api_instrument_price(request):
         return JsonResponse({
             'ticker': ticker,
             'date': day.isoformat(),
+            'requested_date': requested_date,
+            'market_closed': market_closed,
             'quote': None if quote is None else {
                 'price': str(quote.price), 'currency': quote.currency,
                 'quote_date': quote.quote_date.isoformat(), 'source': quote.source,
