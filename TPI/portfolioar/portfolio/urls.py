@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/precio/', views.api_instrument_price, name='api_instrument_price'),
     path('liquidez/', views.cash_list, name='cash_list'),
     path('liquidez/create/', views.cash_create, name='cash_create'),
+    path('liquidez/retirar/', views.cash_withdraw, name='cash_withdraw'),
     path('liquidez/<int:cash_id>/update/', views.cash_update, name='cash_update'),
     path('liquidez/<int:cash_id>/delete/', views.cash_delete, name='cash_delete'),
 ]

@@ -9,7 +9,10 @@
         <h1>Liquidez</h1>
     </div>
     {% if cash_positions %}
-    <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva entrada</a>
+    <div class="d-flex gap-2">
+        <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Nueva entrada</a>
+        <a href="{% url 'portfolio:cash_withdraw' %}" class="btn btn-outline-warning"><i class="fa-solid fa-minus me-1"></i> Retirar</a>
+    </div>
     {% endif %}
 </div>
 
@@ -66,6 +69,7 @@
                 <div class="text-center py-5">
                     <p class="text-muted">No tenés liquidez registrada todavía.</p>
                     <a href="{% url 'portfolio:cash_create' %}" class="btn btn-primary">Agregar liquidez</a>
+                    <a href="{% url 'portfolio:cash_withdraw' %}" class="btn btn-outline-warning ms-2">Retirar liquidez</a>
                 </div>
                 {% endif %}
             </div>

@@ -290,6 +290,30 @@ def cash_create(request):
 
 
 @login_required
+def cash_withdraw(request):
+    cash_manager = CashManager()
+    if request.method == 'POST':
+        currency = request.POST.get('currency')
+        description = request.POST.get('description', '')
+        try:
+            amount = float(request.POST.get('amount', 0))
+            cash_manager.withdraw_cash(request.user.id, currency, amount, description)
+            return redirect('portfolio:cash_list')
+        except ValueError as e:
+            return render(request, 'portfolio/cash_form.html', {
+                'error': str(e),
+                'is_withdraw': True,
+                'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
+                'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+            })
+    return render(request, 'portfolio/cash_form.html', {
+        'is_withdraw': True,
+        'available_ars': cash_manager.get_available(request.user.id, 'ARS'),
+        'available_usd': cash_manager.get_available(request.user.id, 'USD'),
+    })
+
+
+@login_required
 def cash_update(request, cash_id):
     cash_manager = CashManager()
     cash = cash_manager.get_cash(cash_id, request.user.id)

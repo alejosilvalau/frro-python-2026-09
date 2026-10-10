@@ -1,17 +1,20 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if cash %}Editar Liquidez{% else %}Nueva Liquidez{% endif %} - PortfolioAR{% endblock %}
+{% block title %}{% if cash %}Editar Liquidez{% elif is_withdraw %}Retirar Liquidez{% else %}Nueva Liquidez{% endif %} - PortfolioAR{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0">{% if cash %}Editar entrada de liquidez{% else %}Nueva entrada de liquidez{% endif %}</h4>
+                <h4 class="mb-0">{% if cash %}Editar entrada de liquidez{% elif is_withdraw %}Retirar liquidez{% else %}Nueva entrada de liquidez{% endif %}</h4>
             </div>
             <div class="card-body">
                 {% if error %}
                 <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                {% if is_withdraw %}
+                <div class="alert alert-info">Disponible: ${{ available_ars|floatformat:2 }} ARS · U$D {{ available_usd|floatformat:2 }} USD</div>
                 {% endif %}
 
                 <form method="post">
@@ -50,8 +53,8 @@
                                value="{{ cash.description|default:'' }}" placeholder="ej: Saldo IOL, Dólares MEP">
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
-                        {% if cash %}Guardar cambios{% else %}Agregar{% endif %}
+                    <button type="submit" class="btn {% if is_withdraw %}btn-warning{% else %}btn-primary{% endif %} w-100">
+                        {% if cash %}Guardar cambios{% elif is_withdraw %}Retirar{% else %}Agregar{% endif %}
                     </button>
                 </form>
 

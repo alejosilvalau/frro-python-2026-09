@@ -912,6 +912,20 @@ class CashManager:
             raise ValueError("La moneda debe ser ARS o USD")
         return create_cash_position(user_id, currency, amount, description)
 
+    def withdraw_cash(self, user_id, currency, amount, description=''):
+        if amount <= 0:
+            raise ValueError("El monto debe ser mayor a 0")
+        if currency not in ('ARS', 'USD'):
+            raise ValueError("La moneda debe ser ARS o USD")
+        available = self.get_available(user_id, currency)
+        if available < amount:
+            symbol = '$' if currency == 'ARS' else 'U$D'
+            raise ValueError(
+                f"Liquidez insuficiente en {currency}. "
+                f"Disponible: {symbol}{available:,.2f} — Requerido: {symbol}{amount:,.2f}"
+            )
+        return create_cash_position(user_id, currency, -amount, description)
+
     def update_cash(self, cash_id, amount, description=''):
         if amount <= 0:
             raise ValueError("El monto debe ser mayor a 0")
