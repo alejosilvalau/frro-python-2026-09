@@ -14,12 +14,15 @@ from portfolio.business import (
     LotManager,
     PortfolioManager,
     SaleManager,
+    is_business_day,
     last_business_day,
 )
 from portfolio.models import CashPosition, Lot, Position, Sale
 
-# Moneda de negociación requerida por validate_purchase_currency.
-STOCK_CURRENCIES = {'GGAL': 'ARS', 'YPF': 'ARS', 'AAPL': 'ARS', 'MSFT': 'USD'}
+# Moneda de negociación requerida por validate_purchase_currency (según IOL).
+# Ojo: el ticker BYMA/IOL de YPF es YPFD (YPF.BA no existe en Yahoo).
+STOCK_CURRENCIES = {'GGAL': 'ARS', 'YPFD': 'ARS', 'AAPL': 'ARS', 'MSFT': 'ARS'}
+CANONICAL_TICKERS = {'YPF': 'YPFD'}
 
 DEPOSITS = [
     ('ARS', 5_000_000, 'Seed ejemplo sueldo'),
@@ -28,6 +31,35 @@ DEPOSITS = [
 
 WITHDRAW_DESC = 'Seed ejemplo retiro'
 ALERT_NAME = 'Alerta ejemplo GGAL'
+
+# Movimientos masivos: 20 compras + 20 ventas round-robin (compra 2 / venta 1).
+BULK_TICKERS = ['GGAL', 'NVDA', 'YPFD']
+BULK_PAIRS = 20
+BULK_BUY_AMOUNT = 2
+BULK_SELL_AMOUNT = 1
+BULK_BASE_PRICE = Decimal('1500')
+BULK_PRICE_STEP = Decimal('25')
+BULK_SELL_SPREAD = Decimal('100')
+
+
+def recent_business_days(count):
+    """Últimos `count` días hábiles en orden cronológico (excluye hoy)."""
+    days = []
+    cursor = timezone.localdate() - timedelta(days=1)
+    while len(days) < count and (timezone.localdate() - cursor).days < 120:
+        if is_business_day(cursor):
+            days.append(cursor)
+        cursor -= timedelta(days=1)
+    if len(days) < count:
+        raise CommandError('No se pudieron reunir suficientes días hábiles para el seed masivo.')
+    return list(reversed(days))
+
+
+def aware_at(day):
+    dt = timezone.datetime.combine(day, time(17, 0))
+    if timezone.is_naive(dt):
+        return timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
 
 
 def aware_business_day(days_back):
@@ -115,7 +147,7 @@ class Command(BaseCommand):
         if position_usd is None:
             position_usd = portfolio_manager.add_position(
                 user.id, msft.id, broker.id, 5, Decimal('400'),
-                buy_at, 'USD', price_input_currency='USD', manual_ccl_rate=ccl,
+                buy_at, 'ARS', price_input_currency='ARS', manual_ccl_rate=ccl,
             )
             self.stdout.write(self.style.SUCCESS(f'Posición MSFT creada: {position_usd.id}'))
         else:
@@ -129,6 +161,83 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Venta creada: {sale.id} (P&L ARS {sale.realized_pnl_ars})'))
         else:
             self.stdout.write('Venta GGAL ya existía, no se duplicó')
+
+        # 20 compras + 20 ventas: pares (compra día N, venta día N+1) round-robin.
+        # Cada venta (1) es menor que su compra (2) y posterior a ella: FIFO cubierto.
+        schedule = recent_business_days(BULK_PAIRS * 2)
+        bulk_positions = {}
+        for ticker in BULK_TICKERS:
+            stock = Stock.objects.get(ticker=ticker)
+            bulk_positions[ticker] = Position.objects.filter(user=user, stock=stock).first()
+        # Sana DBs seedadas con el ticker viejo: re-apunta la posición a YPFD.
+        for stale, canonical in CANONICAL_TICKERS.items():
+            stale_stock = Stock.objects.filter(ticker=stale).first()
+            canonical_stock = Stock.objects.filter(ticker=canonical).first()
+            if stale_stock is None or canonical_stock is None:
+                continue
+            stale_pos = Position.objects.filter(user=user, stock=stale_stock)
+            if stale_pos.exists() and not Position.objects.filter(user=user, stock=canonical_stock).exists():
+                stale_pos.update(stock=canonical_stock)
+                self.stdout.write(self.style.SUCCESS(f'Posición {stale} migrada a {canonical}'))
+            if not Position.objects.filter(stock=stale_stock).exists():
+                stale_stock.delete()
+                self.stdout.write(self.style.SUCCESS(f'Stock stale {stale} eliminado'))
+        bulk_positions['YPFD'] = Position.objects.filter(
+            user=user, stock=Stock.objects.get(ticker='YPFD')).first()
+
+        # YPFD puede no tener posición: su primera compra del cronograma la abre
+        # vía add_position (cuenta como una de las 20 compras).
+        ypfd_first_pair = next(i for i in range(BULK_PAIRS) if BULK_TICKERS[i % len(BULK_TICKERS)] == 'YPFD')
+        ypfd_buy_day = schedule[ypfd_first_pair * 2]
+        ypfd_buy_price = BULK_BASE_PRICE + ypfd_first_pair * BULK_PRICE_STEP
+        if bulk_positions['YPFD'] is None:
+            ypfd = Stock.objects.get(ticker='YPFD')
+            bulk_positions['YPFD'] = portfolio_manager.add_position(
+                user.id, ypfd.id, broker.id, BULK_BUY_AMOUNT, ypfd_buy_price,
+                aware_at(ypfd_buy_day), 'ARS', price_input_currency='ARS', manual_ccl_rate=ccl,
+            )
+            self.stdout.write(self.style.SUCCESS(f'Posición YPFD creada: {bulk_positions["YPFD"].id}'))
+
+        buys_total = sells_total = 0
+        new_buys = new_sells = 0
+        for i in range(BULK_PAIRS):
+            ticker = BULK_TICKERS[i % len(BULK_TICKERS)]
+            pos = bulk_positions[ticker]
+            buy_day, sell_day = schedule[i * 2], schedule[i * 2 + 1]
+            buy_price = BULK_BASE_PRICE + i * BULK_PRICE_STEP
+            sell_price = buy_price + BULK_SELL_SPREAD
+
+            buy_exists = Lot.objects.filter(
+                position=pos, amount=BULK_BUY_AMOUNT,
+                price_local=buy_price, purchased_at__date=buy_day,
+            ).exists()
+            if buy_exists:
+                buys_total += 1
+            else:
+                lot_manager.add_lot(
+                    pos.id, BULK_BUY_AMOUNT, buy_price, aware_at(buy_day), 'ARS', 0,
+                    price_input_currency='ARS', manual_ccl_rate=ccl,
+                )
+                buys_total += 1
+                new_buys += 1
+
+            sell_exists = Sale.objects.filter(
+                position=pos, amount=BULK_SELL_AMOUNT,
+                price_local=sell_price, sold_at__date=sell_day,
+            ).exists()
+            if not sell_exists:
+                sale_manager.add_sale(
+                    pos.id, BULK_SELL_AMOUNT, sell_price, aware_at(sell_day), 'ARS',
+                    price_input_currency='ARS', manual_ccl_rate=ccl,
+                )
+                sells_total += 1
+                new_sells += 1
+            else:
+                sells_total += 1
+        self.stdout.write(self.style.SUCCESS(
+            f'Movimientos masivos: {buys_total} compras ({new_buys} nuevas), '
+            f'{sells_total} ventas ({new_sells} nuevas).'
+        ))
 
         if not CashPosition.objects.filter(user=user, description=WITHDRAW_DESC).exists():
             withdrawal = cash_manager.withdraw_cash(user.id, 'ARS', 50_000, WITHDRAW_DESC)

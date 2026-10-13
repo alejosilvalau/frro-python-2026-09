@@ -30,7 +30,7 @@ Todos idempotentes salvo indicación. Se ejecutan como `python manage.py <comand
 
 | Comando | Qué hace | Ejemplo |
 |---|---|---|
-| `seed_example_data` | Carga datos de ejemplo con las validaciones de la app: monedas de negociación, depósitos ARS/USD, posiciones GGAL/MSFT, lote extra, venta parcial, retiro de ejemplo, indicadores y alerta RSI. Omite lo que ya existe. | `python manage.py seed_example_data` · `--username alejo --ccl 1400` |
+| `seed_example_data` | Carga datos de ejemplo con las validaciones de la app: monedas de negociación, depósitos ARS/USD, posiciones GGAL/MSFT/YPFD, 20 compras + 20 ventas round-robin (pares compra 2 / venta 1 en días hábiles), retiro de ejemplo, indicadores y alerta RSI. Omite lo que ya existe. | `python manage.py seed_example_data` · `--username alejo --ccl 1400` |
 | `seed_demo_data` | Crea/resetea usuario demo `demo@test.com` / `demo1234` con liquidez inicial + indicadores. | `python manage.py seed_demo_data` |
 | `seed_instruments_from_iol` | Importa catálogo de instrumentos + brokers fijos desde la API de IOL. Requiere `IOL_USER/IOL_PASSWORD`. | `python manage.py seed_instruments_from_iol` |
 | `sync_instrument_classification` | Sincroniza metadatos (sector, tipo, emisor) desde `core/data/instrument_classification.csv`. Por defecto simula. | `python manage.py sync_instrument_classification --apply` |
