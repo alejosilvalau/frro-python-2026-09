@@ -49,23 +49,20 @@ def dashboard(request):
     portfolio_manager = PortfolioManager()
     cash_manager = CashManager()
     cash_totals = cash_manager.get_totals(request.user.id)
-    summary = portfolio_manager.calculate_portfolio_summary(request.user.id, cash_totals=cash_totals)
-    positions = portfolio_manager.get_user_positions(request.user.id)
+    positions = list(portfolio_manager.get_user_positions(request.user.id))
+    # El template solo usa performance por posición: no se calculan
+    # comparaciones S&P/inflación ni indicadores acá (eran ~3 llamadas
+    # de red desperdiciadas por posición). El performance se calcula una
+    # sola vez y se reutiliza en el resumen.
+    performances = [portfolio_manager.calculate_position_performance(p) for p in positions]
+    summary = portfolio_manager.calculate_portfolio_summary(
+        request.user.id, cash_totals=cash_totals,
+        precomputed_performances={p.id: perf for p, perf in zip(positions, performances)},
+    )
 
-    positions_with_performance = []
-    for position in positions:
-        performance = portfolio_manager.calculate_position_performance(position)
-        sp500_comparison = portfolio_manager.compare_with_sp500(position, performance)
-        inflation_comparison = portfolio_manager.compare_with_inflation(position, performance)
-        technical_indicators = portfolio_manager.get_technical_indicators(position)
-
-        positions_with_performance.append({
-            'position': position,
-            'performance': performance,
-            'sp500': sp500_comparison,
-            'inflation': inflation_comparison,
-            'indicators': technical_indicators
-        })
+    positions_with_performance = [
+        {'position': p, 'performance': perf} for p, perf in zip(positions, performances)
+    ]
 
     return render(request, 'portfolio/dashboard.html', {
         'summary': summary,

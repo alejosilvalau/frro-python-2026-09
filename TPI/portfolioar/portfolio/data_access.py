@@ -16,6 +16,14 @@ _iol_token = {'access_token': None, 'refresh_token': None, 'expires_at': 0}
 logger = logging.getLogger('portfolio.market_data')
 
 
+def cache_set_best_effort(key, value, timeout):
+    """Guarda en caché sin romper el flujo si el valor no es serializable."""
+    try:
+        cache.set(key, value, timeout=timeout)
+    except Exception:
+        logger.warning('Cache set failed key=%s', key)
+
+
 def _log_iol_failure(stage, error, response=None):
     if response is None:
         response = getattr(error, 'response', None)
@@ -148,13 +156,29 @@ def get_holidays(year):
     return data
 
 
+CCL_RATE_TTL_SECONDS = 120
+
+
 def get_ccl_rate():
+    cache_key = 'ccl:dolarapi:venta'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     resp = requests.get('https://dolarapi.com/v1/dolares/contadoconliqui', timeout=8)
     resp.raise_for_status()
-    return float(resp.json()['venta'])
+    rate = float(resp.json()['venta'])
+    cache_set_best_effort(cache_key, rate, CCL_RATE_TTL_SECONDS)
+    return rate
+
+
+INDEC_CACHE_TTL_SECONDS = 3600
 
 
 def get_indec_inflation_series(start_date, end_date):
+    cache_key = f"indec:{start_date.strftime('%Y-%m')}:{end_date.strftime('%Y-%m')}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     response = requests.get(
         'https://apis.datos.gob.ar/series/api/series/',
         params={
@@ -166,22 +190,36 @@ def get_indec_inflation_series(start_date, end_date):
         timeout=10,
     )
     response.raise_for_status()
-    return response.json().get('data', [])
+    data = response.json().get('data', [])
+    cache_set_best_effort(cache_key, data, INDEC_CACHE_TTL_SECONDS)
+    return data
+
+
+YFINANCE_TIMEOUT_SECONDS = 15
+YFINANCE_CACHE_TTL_SECONDS = 300
+SP500_CACHE_TTL_SECONDS = 3600
 
 
 def get_sp500_return(start_date, end_date):
     import yfinance as yf
+    cache_key = f'sp500:{start_date.isoformat()}:{end_date.isoformat()}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     hist = yf.Ticker('^GSPC').history(
         start=start_date.strftime('%Y-%m-%d'),
         end=end_date.strftime('%Y-%m-%d'),
         auto_adjust=True,
+        timeout=YFINANCE_TIMEOUT_SECONDS,
     )
     if len(hist) >= 2:
         start_close = hist['Close'].iloc[0]
         end_close = hist['Close'].iloc[-1]
         if not (math.isfinite(start_close) and math.isfinite(end_close)) or start_close == 0:
             return None
-        return float(end_close / start_close - 1) * 100
+        result = float(end_close / start_close - 1) * 100
+        cache_set_best_effort(cache_key, result, SP500_CACHE_TTL_SECONDS)
+        return result
     return None
 
 
@@ -191,7 +229,13 @@ def get_historical_prices(ticker, period='6mo'):
     # Un ticker sin mercado puede identificar otra empresa (AGRO = Adecoagro
     # en Yahoo, mientras que AGRO.BA = Agrometal). Nunca usarlo como fallback.
     symbol = ticker if ticker.upper().endswith('.BA') else f'{ticker}.BA'
-    return yf.Ticker(symbol).history(period=period, auto_adjust=True)
+    cache_key = f'yahoo:{symbol}:{period}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    hist = yf.Ticker(symbol).history(period=period, auto_adjust=True, timeout=YFINANCE_TIMEOUT_SECONDS)
+    cache_set_best_effort(cache_key, hist, YFINANCE_CACHE_TTL_SECONDS)
+    return hist
 
 
 def get_positions_by_user(user_id):

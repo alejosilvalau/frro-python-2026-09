@@ -659,10 +659,11 @@ class PortfolioManager:
             'inflation_is_annual_fallback': is_fallback,
         }
 
-    def calculate_portfolio_summary(self, user_id, cash_totals=None):
-        positions = get_positions_by_user(user_id)
+    def calculate_portfolio_summary(self, user_id, cash_totals=None, precomputed_performances=None):
+        positions = list(get_positions_by_user(user_id))
         if cash_totals is None:
             cash_totals = CashManager().get_totals(user_id)
+        precomputed_performances = precomputed_performances or {}
 
         total_invested = Decimal('0')
         total_current_value = Decimal('0')
@@ -675,7 +676,9 @@ class PortfolioManager:
         unavailable_price_tickers = set()
 
         for position in positions:
-            performance = self.calculate_position_performance(position)
+            performance = precomputed_performances.get(position.id)
+            if performance is None:
+                performance = self.calculate_position_performance(position)
             total_realized_pnl_ars += performance['realized_pnl_ars']
 
             # Una posición cerrada no tiene invested_amount/current_value "vigentes": esa plata
