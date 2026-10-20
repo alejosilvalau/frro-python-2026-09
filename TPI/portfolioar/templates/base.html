@@ -23,7 +23,7 @@
             <span>PortfolioAR</span>
         </a>
         <nav class="sidebar-nav" aria-label="Navegación principal">
-            <a class="sidebar-link {% if request.resolver_match.view_name == 'portfolio:dashboard' %}active{% endif %}" href="{% url 'portfolio:dashboard' %}"><i class="fa-solid fa-grid-2"></i><span>Dashboard</span></a>
+            <a class="sidebar-link {% if request.resolver_match.view_name == 'portfolio:dashboard' %}active{% endif %}" href="{% url 'portfolio:dashboard' %}"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a>
             <a class="sidebar-link {% if request.resolver_match.view_name == 'portfolio:position_list' or request.resolver_match.view_name == 'portfolio:position_detail' or request.resolver_match.view_name == 'portfolio:position_create' or request.resolver_match.view_name == 'portfolio:position_update' or request.resolver_match.view_name == 'portfolio:lot_create' or request.resolver_match.view_name == 'portfolio:sale_create' %}active{% endif %}" href="{% url 'portfolio:position_list' %}"><i class="fa-solid fa-briefcase"></i><span>Posiciones</span></a>
             <a class="sidebar-link {% if request.resolver_match.view_name == 'portfolio:cash_list' or request.resolver_match.view_name == 'portfolio:cash_create' %}active{% endif %}" href="{% url 'portfolio:cash_list' %}"><i class="fa-solid fa-wallet"></i><span>Liquidez</span></a>
             <a class="sidebar-link {% if request.resolver_match.namespace == 'alerts' %}active{% endif %}" href="{% url 'alerts:alert_list' %}"><i class="fa-regular fa-bell"></i><span>Alertas</span></a>
