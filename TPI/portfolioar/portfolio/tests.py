@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from requests.exceptions import HTTPError
 
@@ -300,6 +300,55 @@ class PortfolioManagerTest(PortfolioTestBase):
 
         mock.assert_called_once_with(start.date(), end.date())
         self.assertFalse(result['inflation_is_annual_fallback'])
+
+    def test_inflation_retries_with_annual_window_when_series_too_short(self):
+        start = datetime(2026, 8, 14, 10, 0)
+        end = datetime(2026, 10, 8, 16, 0)
+        performance = {
+            'comparison_start': start, 'comparison_end': end,
+            'open_amount': 1, 'profit_loss_percentage': Decimal('5'), 'realized_return_percentage': None,
+        }
+        # INDEC publica con demora: la ventana natural devuelve <2 puntos.
+        with patch.object(
+            self.portfolio_manager.external_apis, 'get_indec_inflation',
+            side_effect=[None, Decimal('80')],
+        ) as mock:
+            result = self.portfolio_manager.compare_with_inflation(self.position, performance)
+
+        self.assertEqual(
+            mock.call_args_list,
+            [call(start.date(), end.date()), call((end - timedelta(days=365)).date(), end.date())],
+        )
+        self.assertEqual(result['inflation'], Decimal('80'))
+        self.assertTrue(result['inflation_is_annual_fallback'])
+        self.assertIsNotNone(result['real_return'])
+
+    def test_inflation_stays_none_when_both_windows_fail(self):
+        start = datetime(2026, 8, 14, 10, 0)
+        end = datetime(2026, 10, 8, 16, 0)
+        performance = {
+            'comparison_start': start, 'comparison_end': end,
+            'open_amount': 1, 'profit_loss_percentage': Decimal('5'), 'realized_return_percentage': None,
+        }
+        with patch.object(
+            self.portfolio_manager.external_apis, 'get_indec_inflation',
+            side_effect=[None, None],
+        ):
+            result = self.portfolio_manager.compare_with_inflation(self.position, performance)
+
+        self.assertIsNone(result['inflation'])
+        self.assertIsNone(result['real_return'])
+        self.assertFalse(result['inflation_is_annual_fallback'])
+
+    @patch('portfolio.business.get_indec_inflation_series')
+    def test_get_indec_inflation_needs_two_points(self, mock_series):
+        mock_series.return_value = [['2026-08-01', 12276.766]]
+
+        result = self.portfolio_manager.external_apis.get_indec_inflation(
+            date(2026, 8, 14), date(2026, 10, 8)
+        )
+
+        self.assertIsNone(result)
 
     def test_calculate_portfolio_summary(self):
         summary = self.portfolio_manager.calculate_portfolio_summary(self.user.id)

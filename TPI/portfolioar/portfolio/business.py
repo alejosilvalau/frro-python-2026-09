@@ -132,6 +132,25 @@ def _inflation_window(start, end):
     return end - timedelta(days=365), end, True
 
 
+def _inflation_or_annual_fallback(external_apis, window_start, window_end, is_fallback):
+    """Inflación de la ventana natural; si faltan puntos, reintenta con 12 meses.
+
+    INDEC publica con demora: una ventana que cruza hacia el mes aún no
+    publicado devuelve menos de dos puntos y el cálculo da None. En ese caso
+    se amplía a 12 meses y se marca el fallback para mostrar "(12 meses)".
+    Recibe fechas (date); devuelve (inflación, es_fallback).
+    """
+    inflation = external_apis.get_indec_inflation(window_start, window_end)
+    if inflation is not None:
+        return inflation, is_fallback
+    fallback_end = window_end
+    fallback_start = fallback_end - timedelta(days=365)
+    inflation = external_apis.get_indec_inflation(fallback_start, fallback_end)
+    if inflation is not None:
+        return inflation, True
+    return None, is_fallback
+
+
 def _fetch_open_lots(position_id, for_update=False):
     lots_query = get_lots_by_position_for_update if for_update else get_lots_by_position
     lots = list(lots_query(position_id))
@@ -639,9 +658,11 @@ class PortfolioManager:
 
         window_start, window_end, is_fallback = _inflation_window(start_date, end_date)
 
-        inflation = self.external_apis.get_indec_inflation(
-            window_start.date(),
-            window_end.date()
+        inflation, is_fallback = _inflation_or_annual_fallback(
+            self.external_apis,
+            window_start.date() if hasattr(window_start, 'date') else window_start,
+            window_end.date() if hasattr(window_end, 'date') else window_end,
+            is_fallback,
         )
         nominal_return = (
             performance['profit_loss_percentage'] if performance['open_amount'] > 0
