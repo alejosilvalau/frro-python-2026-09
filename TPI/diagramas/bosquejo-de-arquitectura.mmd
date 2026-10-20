@@ -1,0 +1,15 @@
+flowchart LR
+    U([Usuario]) --> T[Django Templates<br/>Bootstrap 5 + JS]
+    T --> V
+    subgraph APP [Aplicación Django: Auth · Portfolio · Alerts]
+        direction TB
+        V[Presentación<br/>Django Views]
+        B[Negocio<br/>rendimiento, comparaciones, FIFO,<br/>liquidez, indicadores y alertas]
+        D[Datos<br/>Django ORM + clientes de APIs]
+        V --> B --> D
+    end
+    D --> DB[(SQL Server<br/>SQLite en desarrollo)]
+    D --> IOL[API IOL<br/>catálogo y cotizaciones]
+    D --> AD[API ArgentinaDatos<br/>CCL y feriados]
+    D --> INDEC[API INDEC<br/>IPC mensual]
+    D --> YF[Yahoo Finance<br/>S&P 500 y históricos .BA]
