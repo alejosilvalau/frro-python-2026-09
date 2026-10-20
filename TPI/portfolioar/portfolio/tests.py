@@ -14,6 +14,7 @@ from portfolio.models import Position, Lot, Sale, CashPosition, CashTransaction
 from portfolio.business import CclResult, QuoteResult, PortfolioManager, LotManager, SaleManager, CashManager, ExternalAPIs
 from portfolio.data_access import get_iol_quote, get_position_for_update
 from portfolio import fifo
+from portfolio.business import is_business_day, last_business_day
 
 
 class PortfolioTestBase(TestCase):
@@ -68,6 +69,40 @@ class PositionModelTest(PortfolioTestBase):
 
 
 class PurchaseCurrencyTest(PortfolioTestBase):
+    @patch('portfolio.business.MarketDataManager.get_quote_for_date')
+    def test_purchase_on_byma_closure_is_rejected_without_creating_or_debiting(self, mock_quote):
+        available = self.cash_manager.get_available(self.user.id, 'ARS')
+
+        with self.assertRaisesRegex(ValueError, 'no es día hábil bursátil'):
+            self.portfolio_manager.add_position(
+                self.user.id, self.stock.id, self.broker.id, 1, Decimal('100'),
+                datetime(2025, 12, 31, 17),
+            )
+
+        mock_quote.assert_not_called()
+        self.assertFalse(Position.objects.exists())
+        self.assertFalse(Lot.objects.exists())
+        self.assertFalse(CashTransaction.objects.exists())
+        self.assertEqual(self.cash_manager.get_available(self.user.id, 'ARS'), available)
+
+    @patch('portfolio.business.get_holidays', return_value=[])
+    @patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos'))
+    def test_additional_purchase_on_byma_closure_preserves_lots_and_cash(self, mock_quote, mock_holidays):
+        position = self.portfolio_manager.add_position(
+            self.user.id, self.stock.id, self.broker.id, 1, Decimal('100'), datetime(2024, 1, 2),
+        )
+        available = self.cash_manager.get_available(self.user.id, 'ARS')
+        transactions = CashTransaction.objects.count()
+        mock_quote.reset_mock()
+
+        with self.assertRaisesRegex(ValueError, 'no es día hábil bursátil'):
+            self.lot_manager.add_lot(position.id, 1, Decimal('100'), datetime(2025, 12, 31, 17))
+
+        mock_quote.assert_not_called()
+        self.assertEqual(Lot.objects.filter(position=position).count(), 1)
+        self.assertEqual(CashTransaction.objects.count(), transactions)
+        self.assertEqual(self.cash_manager.get_available(self.user.id, 'ARS'), available)
+
     @patch('portfolio.business.ExternalAPIs.get_current_price', return_value=Decimal('7.05'))
     @patch('portfolio.business.MarketDataManager.get_quote_for_date', return_value=(None, 'sin_datos'))
     def test_usd_quote_is_converted_before_ars_valuation(self, mock_quote, mock_price):
@@ -744,6 +779,16 @@ class PositionCreateViewTest(PortfolioTestBase):
         resp = anon_client.get(reverse('portfolio:position_create'))
         self.assertEqual(resp.status_code, 302)
 
+    def test_manually_posting_closed_date_does_not_bypass_purchase_validation(self):
+        response = self.client.post(reverse('portfolio:position_create'), {
+            **self.valid_data, 'purchased_at': '2025-12-31T17:00',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'no es día hábil bursátil')
+        self.assertFalse(Position.objects.exists())
+        self.assertFalse(CashTransaction.objects.exists())
+
     def test_get_renders_form_with_available_balances(self):
         resp = self.client.get(reverse('portfolio:position_create'))
         self.assertEqual(resp.status_code, 200)
@@ -1385,3 +1430,16 @@ class ClosedMarketFallbackTest(TestCase):
              patch('portfolio.business.get_iol_daily_series',
                    return_value=[{'ultimoPrecio': 99.0}, {'ultimoPrecio': None}]):
             self.assertEqual(ExternalAPIs.get_current_price('GGAL'), Decimal('99'))
+
+
+class BymaTradingCalendarTest(TestCase):
+    @patch('portfolio.business.get_holidays', return_value=[])
+    def test_year_end_market_closures_are_not_trading_days(self, mock_holidays):
+        for year in (2024, 2025, 2026):
+            with self.subTest(year=year):
+                self.assertFalse(is_business_day(date(year, 12, 31)))
+                self.assertEqual(last_business_day(date(year, 12, 31)), date(year, 12, 30))
+
+    @patch('portfolio.business.get_holidays', return_value=[])
+    def test_christmas_eve_with_trading_is_not_treated_as_closed(self, mock_holidays):
+        self.assertTrue(is_business_day(date(2025, 12, 24)))

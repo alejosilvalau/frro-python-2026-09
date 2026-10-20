@@ -81,7 +81,12 @@
     pricingBlocked = false;
     if (submitButton && !purchaseForm) submitButton.disabled = false;
     if (cclStatus) cclStatus.textContent = '';
-    if (priceStatus) priceStatus.textContent = '';
+    if (priceStatus) {
+      priceStatus.textContent = '';
+      priceStatus.classList.remove('text-danger');
+      priceStatus.classList.add('text-muted');
+      priceStatus.setAttribute('role', 'status');
+    }
     updateTotal();
   };
   const deriveOther = () => {
@@ -100,6 +105,9 @@
     if (!stockId || !date) return;
     const id = requestId;
     controller = new AbortController();
+    pricingBlocked = true;
+    if (submitButton && !purchaseForm) submitButton.disabled = true;
+    updateTotal();
     fetch(`${apiUrl}?stock_id=${stockId}&fecha=${date}`, {signal: controller.signal})
       .then(response => response.json().then(data => ({response, data})))
       .then(({response, data}) => {

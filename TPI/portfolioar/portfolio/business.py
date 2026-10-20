@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
-from datetime import datetime, timedelta, time
+from datetime import date, datetime, timedelta, time
 import logging
 import math
 from django.conf import settings
@@ -28,6 +28,16 @@ from core.business import StockManager
 
 PRICE_PRECISION = Decimal('0.0001')
 logger = logging.getLogger('portfolio.market_data')
+
+# Cierres de negociación de BYMA que no son feriados nacionales.
+# Comunicados 18674 (2024), 18897 (2025) y calendario bursátil 2026:
+# https://www.byma.com.ar/comunicados/comunicado-18897-actividad-byma-24-y-31-diciembre-2025
+# https://www.byma.com.ar/mercado/calendario-bursatil
+BYMA_NON_TRADING_DAYS = frozenset({
+    date(2024, 12, 31),
+    date(2025, 12, 31),
+    date(2026, 12, 31),
+})
 
 
 @dataclass(frozen=True)
@@ -73,7 +83,7 @@ def _operation_day(operation_dt):
 
 
 def is_business_day(day):
-    if day.weekday() >= 5:
+    if day.weekday() >= 5 or day in BYMA_NON_TRADING_DAYS:
         return False
     try:
         holidays = get_holidays(day.year)
