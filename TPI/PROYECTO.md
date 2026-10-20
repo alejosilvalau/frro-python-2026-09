@@ -12,13 +12,159 @@ El sistema resuelve los siguientes problemas concretos:
 
 ## Modelo de Dominio
 
-![Diagrama de Clases](./diagrama-de-clases-v2.jpg)
+```mermaid
+classDiagram
+    direction LR
+    class User {
+        username
+        email
+        password
+        first_name
+        last_name
+        is_active
+        phone
+        birthdate
+    }
+    class Sector {
+        name
+        description
+        primary
+    }
+    class Broker {
+        name
+        link
+    }
+    class Stock {
+        ticker
+        company_name
+        tipo
+        trading_currency
+        cedear_kind
+        issuer_type
+        rate_reference
+        payment_style
+        instrument_family
+        underlying_ticker
+        classification_source
+        classification_date
+        classification_manual
+    }
+    class Position {
+        status
+        opened_at
+    }
+    class Lot {
+        amount
+        price_local
+        price_usd
+        purchased_at
+        purchase_currency
+        fees
+        price_input_currency
+        price_origin
+        price_source
+        price_quote_date
+        quote_currency
+        quote_unit
+        ccl_rate
+        ccl_date
+        ccl_source
+    }
+    class Sale {
+        amount
+        price_local
+        price_usd
+        sold_at
+        sell_currency
+        realized_pnl_ars
+        realized_pnl_usd
+        price_input_currency
+        price_origin
+        price_source
+        price_quote_date
+        quote_currency
+        quote_unit
+        ccl_rate
+        ccl_date
+        ccl_source
+    }
+    class SaleLot {
+        amount_consumed
+        cost_price_local
+        cost_price_usd
+    }
+    class CashPosition {
+        currency
+        amount
+        description
+        created_at
+    }
+    class CashTransaction {
+        currency
+        amount
+        tipo
+        created_at
+    }
+    class Alert {
+        name
+        is_active
+        created_at
+    }
+    class AlertCondition {
+        operator
+        threshold_value
+    }
+    class TechnicalIndicator {
+        name
+        description
+        period
+    }
+    class AlertTrigger {
+        trigger_datetime
+        ai_recommendation
+    }
+
+    User "1" --> "0..*" Position
+    User "1" --> "0..*" CashPosition
+    User "1" --> "0..*" CashTransaction
+    User "1" --> "0..*" Alert
+    Sector "0..1" --> "0..*" Stock
+    Stock "1" --> "0..*" Position
+    Stock "1" --> "0..*" Alert
+    Broker "1" --> "0..*" Position
+    Position "1" --> "1..*" Lot
+    Position "1" --> "0..*" Sale
+    Sale "1" --> "1..*" SaleLot : consume por FIFO
+    Lot "1" --> "0..*" SaleLot
+    Position "0..1" --> "0..*" CashTransaction
+    Lot "0..1" --> "0..*" CashTransaction
+    Sale "0..1" --> "0..*" CashTransaction
+    Alert "0..*" --> "1..*" AlertCondition
+    TechnicalIndicator "1" --> "0..*" AlertCondition
+    Alert "1" --> "0..*" AlertTrigger
+```
 
 ## Bosquejo de Arquitectura
 
 El sistema sigue una arquitectura de 3 capas:
 
-![Bosquejo de Arquitectura](./bosquejo-de-arquitectura-v1.png)
+```mermaid
+flowchart LR
+    U([Usuario]) --> T[Django Templates<br/>Bootstrap 5 + JS]
+    T --> V
+    subgraph APP [Aplicación Django: Auth · Portfolio · Alerts]
+        direction TB
+        V[Presentación<br/>Django Views]
+        B[Negocio<br/>rendimiento, comparaciones, FIFO,<br/>liquidez, indicadores y alertas]
+        D[Datos<br/>Django ORM + clientes de APIs]
+        V --> B --> D
+    end
+    D --> DB[(SQL Server<br/>SQLite en desarrollo)]
+    D --> IOL[API IOL<br/>catálogo y cotizaciones]
+    D --> AD[API ArgentinaDatos<br/>CCL y feriados]
+    D --> INDEC[API INDEC<br/>IPC mensual]
+    D --> YF[Yahoo Finance<br/>S&P 500 y históricos .BA]
+```
 
 División horizontal de responsabilidades:
 - La **capa de presentación** expone vistas Django y renderiza los templates. No accede directamente a la base de datos.
@@ -27,7 +173,7 @@ División horizontal de responsabilidades:
 
 División vertical por casos de uso:
 - Auth: Gestión de usuarios (registro, login, logout y cambios de contraseña).
-- Portfolio: Registro de posiciones y ordenes de venta.
+- Portfolio: Registro de posiciones, ordenes de venta (costeo FIFO) y gestión de liquidez en ARS/USD (depósitos y retiros).
 - Alerts : Configuración y evaluación de alertas técnicas.
 
 ## Requerimientos
@@ -37,10 +183,10 @@ División vertical por casos de uso:
 **Módulo 1 – Gestión de Portfolio**
 
 - RF01: El usuario puede registrarse, iniciar sesión y cerrar sesión.
-- RF02: El usuario puede registrar operaciones de compra y venta de acciones, bonos y CEDEARs (ticker, cantidad, precio, fecha).
-- RF03: El sistema calcula el rendimiento de cada posición: precio de compra vs. precio actual, ganancia/pérdida en % y en dólares, rendimiento anualizado.
-- RF04: El sistema compara el rendimiento de cada posición contra el S&P 500 (SPY) para el mismo período.
-- RF05: El sistema compara el rendimiento del portfolio contra la inflación acumulada del INDEC para el período de inversión.
+- RF02: El usuario puede registrar operaciones de compra y venta de acciones, bonos, letras y CEDEARs (instrumento, cantidad, precio, fecha, broker). El precio y el CCL de la fecha se obtienen automáticamente y quedan guardados como snapshot de la operación; la compra debe hacerse en la moneda de cotización del instrumento y descuenta la liquidez disponible.
+- RF03: El sistema calcula el rendimiento de cada posición: precio de compra vs. precio actual, ganancia/pérdida en % y en dólares y rendimiento anualizado (este último solo cuando la tenencia supera los 30 días).
+- RF04: El sistema compara el rendimiento de cada posición contra el S&P 500 (índice `^GSPC`) para el mismo período. Si el período es demasiado corto para la granularidad del índice, se usa una ventana de 12 meses y la pantalla lo indica.
+- RF05: El sistema compara el rendimiento del portfolio contra la inflación acumulada del INDEC para el período de inversión (con la misma ventana de 12 meses cuando el período no alcanza un mes completo).
 - RF07: El sistema calcula y muestra indicadores técnicos actuales por posición.
 
 **Módulo 2 – Alertas**
@@ -68,11 +214,11 @@ División vertical por casos de uso:
 
 - El posee diseñarse con la arquitectura en 3 capas. (Ver [checklist_capas.md](checklist_capas.md))
 - El utiliza utilizar control de versiones mediante GIT.
-- El sistema está programado en Python 3.8 o superior.
+- El sistema está programado en Python 3.10 o superior.
 
 ### Reliability
 
-- Se maneja correctamente la ausencia de datos para períodos sin cotización (feriados, fines de semana).
+- Se maneja correctamente la ausencia de datos para períodos sin cotización (feriados, fines de semana): se usa el último valor disponible y, si el origen externo falla, se informa en pantalla en lugar de inventar datos.
 
 ### Scalability
 
@@ -103,7 +249,9 @@ División vertical por casos de uso:
 
 - **SQL Server**: motor relacional robusto, ampliamente utilizado en entornos empresariales. Almacena todas las entidades del dominio.
 - **Django ORM + mssql-django**: el ORM incluido en Django, con el backend oficial de Microsoft para SQL Server (`mssql-django`). Permite definir los modelos como clases Python y gestionar migraciones sin escribir SQL directamente, facilitando el cambio de motor de base de datos si fuera necesario.
-- **API IOL (InvertirOnline)**: API REST oficial del broker argentino InvertirOnline. Requiere cuenta en IOL y autenticación por token (OAuth2). Provee cotizaciones en tiempo real e históricas de acciones, bonos y CEDEARs del mercado argentino (BYMA) e internacional. Se utiliza para obtener los precios necesarios para calcular el rendimiento de las posiciones.
+- **API IOL (InvertirOnline)**: API REST oficial del broker argentino InvertirOnline. Requiere cuenta en IOL y autenticación por token (OAuth2). Provee cotizaciones en tiempo real e históricas de acciones, bonos y CEDEARs del mercado argentino (BYMA) e internacional. Se utiliza para poblar el catálogo de instrumentos y para obtener los precios (actuales e históricos por fecha de operación) necesarios para calcular el rendimiento de las posiciones.
+- **API ArgentinaDatos**: API REST pública que provee la cotización histórica del dólar contado con liquidación (CCL) y los feriados, usados para valuar en ARS/USD cada operación y determinar los días hábiles.
+- **Yahoo Finance (yfinance)**: serie diaria del S&P 500 (`^GSPC`) para el benchmark, e históricos con sufijo `.BA` para los indicadores técnicos de especies BYMA.
 - **API INDEC (datos.gob.ar)**: API REST pública del INDEC para obtener la variación mensual del IPC nacional. Gratuita, sin autenticación. Endpoint: `https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json`
 
 ### Capa de Negocio
@@ -115,15 +263,27 @@ División vertical por casos de uso:
 
 - **Django**: framework web completo (batteries included). Se eligió por su ORM integrado, sistema de autenticación y gestión de sesiones listos para usar, panel de administración y alta demanda laboral en el mercado argentino. 
 - **Django Templates**: sistema de templates incluido en Django para renderizar las vistas del portfolio, alertas y análisis. Permite migrar a React en el futuro si se desea separar el frontend.
+- **Bootstrap 5 + CSS propio**: interfaz con tema oscuro, barra lateral de navegación y tarjetas de métricas compartidas por todas las pantallas.
 
 ## Reglas de Negocio
 
 - **RN01 – Contraseña mínima**: La contraseña del usuario debe tener como mínimo 8 caracteres. El registro y el cambio de contraseña fallan si no se cumple esta condición.
 - **RN02 – Email único**: No pueden existir dos usuarios registrados con el mismo correo electrónico. El sistema rechaza el registro si el email ya está en uso.
 - **RN03 – Cantidad positiva**: La cantidad de títulos al registrar una posición o una orden debe ser mayor a cero.
-- **RN04 – Precio positivo**: El precio de compra al registrar una posición debe ser mayor a cero.
+- **RN04 – Precio positivo**: El precio de compra o venta de una operación debe ser mayor a cero.
+- **RN07 – Moneda de compra**: La compra solo puede pagarse en la moneda en que cotiza el instrumento (`Stock.trading_currency`).
+- **RN08 – Liquidez suficiente**: Una compra requiere liquidez disponible, en la moneda de pago, mayor o igual al total de la operación; un retiro no puede superar el saldo disponible.
 - **RN05 – Operadores válidos**: Los operadores de condición de alerta deben ser uno de los siguientes: `>`, `<`, `>=`, `<=`, `==`, `!=`. Cualquier otro operador es rechazado.
 - **RN06 – Evaluación AND de alertas**: Una alerta se dispara únicamente si **todas** sus condiciones se cumplen de forma simultánea (lógica AND). Si alguna condición no se cumple, la alerta no se dispara aunque el resto sí lo hagan.
+
+## Catálogo de instrumentos y brokers
+
+El catálogo de instrumentos (`Stock`) y brokers (`Broker`) se siembra en base de datos, no se consulta a IOL en cada request:
+
+- **Instrumentos**: el comando `seed_instruments_from_iol` (`core/management/commands/`) importa el catálogo real desde la API de IOL (`GET /api/v2/Cotizaciones/{instrumento}/{panel}/argentina`) para acciones (Panel General y Merval), CEDEARs, bonos (Publica Nacional, Soberanos en Dolar) y letras, y hace `get_or_create` por ticker. Es idempotente y requiere `IOL_USER`/`IOL_PASSWORD` configurados. Guarda además la moneda de negociación de cada especie (`Stock.trading_currency`, normalizada por `core/currency.py`); si IOL informa una moneda desconocida o dos paneles discrepan, el comando falla sin dejar un catálogo parcial. Lo llama `seed_demo_data` automáticamente si la tabla `Stock` está vacía.
+- **Clasificación de instrumentos**: el comando `sync_instrument_classification` aplica de forma versionada (`core/data/instrument_classification.csv`, modo `--apply` para escribir) sector, tipo de CEDEAR, tipo de emisor, referencia de tasa, estilo de pago, familia y subyacente. Registra fuente y fecha (`classification_source`, `classification_date`) y respeta las correcciones manuales (`classification_manual`). Solo clasifica lo que un dato explícito respalda; el resto queda en `null`.
+- **Brokers**: no salen de IOL (son las plataformas donde el usuario opera, no instrumentos financieros); se siembran fijos (IOL, Balanz, PPI, Primary) desde el mismo comando.
+- **Por qué no se consulta IOL en vivo para poblar el combo de instrumentos en cada carga de página**: agregaría latencia y una dependencia de red a un dato que cambia con poca frecuencia (qué tickers cotizan). Se prefiere importarlo una vez a una tabla local y usar IOL solo para la cotización puntual de un ticker ya elegido (`get_stock_price_from_iol`).
 
 ## Casos de Uso Principales
 
@@ -133,8 +293,8 @@ División vertical por casos de uso:
 | --- | --- |
 | **Actor** | Usuario autenticado |
 | **Precondición** | El usuario inició sesión. El ticker de la acción existe en el sistema. |
-| **Camino básico** | 1. El usuario navega a "Posiciones → Nueva posición". 2. Completa ticker, cantidad, precio de compra, broker y fecha. 3. El sistema valida RN03 y RN04. 4. La posición se guarda y redirige al listado. |
-| **Camino alternativo** | Si cantidad ≤ 0 o precio ≤ 0, el sistema muestra un error y no guarda la posición. |
+| **Camino básico** | 1. El usuario navega a "Posiciones → Nueva posición". 2. Elige el instrumento, broker, cantidad y fecha; el sistema trae el precio de esa fecha (y el CCL) al cambiar instrumento o fecha. 3. Elige la moneda de pago, que debe coincidir con la de cotización del instrumento y tener liquidez suficiente. 4. El sistema valida RN03 y RN04. 5. La posición se guarda con un snapshot de precio y CCL y redirige al listado. |
+| **Camino alternativo** | Si cantidad ≤ 0 o precio ≤ 0, la moneda de pago no coincide con la del instrumento o la liquidez no alcanza, el sistema muestra un error y no guarda la posición. |
 
 ### CU02 – Consultar rendimiento de una posición
 
@@ -143,7 +303,7 @@ División vertical por casos de uso:
 | **Actor** | Usuario autenticado |
 | **Precondición** | El usuario tiene al menos una posición registrada. |
 | **Camino básico** | 1. El usuario accede al detalle de una posición. 2. El sistema obtiene el precio actual, calcula ganancia/pérdida absoluta y porcentual. 3. Compara el rendimiento contra el S&P 500 y contra la inflación INDEC del período. 4. Muestra los resultados con indicadores de color (verde/rojo). |
-| **Camino alternativo** | Si la API del INDEC no responde, se muestra un mensaje de error y se omite la comparación de inflación. |
+| **Camino alternativo** | Si la API del INDEC no responde, se muestra un mensaje de error y se omite la comparación de inflación. Si el mercado está cerrado (fin de semana o feriado), se usa el último valor disponible. |
 
 ### CU03 – Configurar una alerta técnica
 
@@ -163,18 +323,34 @@ División vertical por casos de uso:
 | **Camino básico** | 1. El usuario accede a una posición y selecciona "Operar → Vender". 2. Ingresa cantidad, precios en ARS/USD, moneda y fecha de venta. 3. El sistema valida RN03 y RN04. 4. Consume primero los lotes más antiguos mediante FIFO. 5. Calcula el P&L realizado, acredita la liquidez en la moneda elegida y cierra la posición si no quedan títulos. |
 | **Camino alternativo** | Si la cantidad es inválida o supera los títulos disponibles, el sistema muestra un error y no registra la venta. |
 
+### CU05 – Gestionar liquidez
+
+| Campo | Descripción |
+| --- | --- |
+| **Actor** | Usuario autenticado |
+| **Precondición** | El usuario inició sesión. |
+| **Camino básico** | 1. El usuario navega a "Liquidez". 2. Registra un depósito o un retiro en ARS o USD. 3. El sistema actualiza el saldo y deja el movimiento en el historial (compras, ventas y retiros también lo afectan). |
+| **Camino alternativo** | Si el monto es inválido o el retiro supera el saldo disponible, el sistema rechaza la operación. |
+
 ## Ejecución periódica de alertas
 
 El comando `python manage.py evaluate_alerts` evalúa una vez todas las alertas activas y
 registra en `AlertTrigger` aquellas cuyas condiciones se cumplen. Las alertas sin condiciones
 o sin todos los datos de mercado necesarios se omiten de forma segura.
 
+Mientras hay una sesión abierta, el navegador comprueba las alertas de ese usuario con una
+petición autenticada: la evaluación se limita a una vez cada 15 minutos por sesión y muestra
+un aviso si hubo un disparo o si faltan datos históricos. La campanita lleva a la lista, donde
+se ve el último disparo; el historial completo está en el detalle. Los indicadores de especies
+BYMA usan el símbolo de Yahoo con sufijo `.BA` para no confundir tickers homónimos de otros
+mercados. Si una especie no tiene histórico suficiente, no se inventan indicadores en cero.
+
 Para evitar notificaciones repetidas ante una condición sostenida, cada alerta tiene un
 cooldown persistido de 15 minutos: durante ese período se evalúa normalmente, pero no se crea
 otro `AlertTrigger`.
 
-En el entorno desplegado debe programarse su ejecución periódica. Por ejemplo, para evaluarlo
-cada 15 minutos mediante cron:
+Para evaluar alertas incluso cuando el navegador está cerrado, el entorno desplegado debe
+programar el comando periódicamente. Por ejemplo, cada 15 minutos mediante cron:
 
 ```cron
 */15 * * * * cd /ruta/a/portfolioar && /ruta/al/venv/bin/python manage.py evaluate_alerts
@@ -185,23 +361,25 @@ El catálogo inicial se crea de forma idempotente con
 
 ## Bibliografía
 
-- Django Software Foundation. *Django documentation* (v4.2). <https://docs.djangoproject.com/en/4.2/>
+- Django Software Foundation. *Django documentation* (v5.2). <https://docs.djangoproject.com/en/5.2/>
 - Microsoft. *mssql-django – SQL Server backend for Django*. <https://github.com/microsoft/mssql-django>
 - The pandas development team. *pandas documentation*. <https://pandas.pydata.org/docs/>
 - pandas-ta contributors. *pandas-ta: Technical Analysis Indicators*. <https://github.com/twopirllc/pandas-ta>
 - InvertirOnline. *API IOL – Documentación oficial*. <https://api.invertironline.com/>
+- ArgentinaDatos. *Cotizaciones históricas de dólar contado con liquidación y feriados*. <https://api.argentinadatos.com/>
 - Ministerio de Economía, Argentina. *API de Series de Tiempo – INDEC IPC*. <https://apis.datos.gob.ar/>
 
 ## Documentación de Librerías
 
 | Librería | Versión | Uso en el proyecto |
 | --- | --- | --- |
-| Django | ≥ 4.2 | Framework web principal. ORM, vistas, templates, autenticación y sesiones. |
-| mssql-django | ≥ 1.3 | Backend de Django para conectarse a SQL Server en producción. |
-| python-dotenv | — | Carga variables de entorno desde `.env` en desarrollo local. |
-| requests | — | Llamadas HTTP a las APIs externas (IOL, INDEC). |
+| Django | ≥ 5.2, < 6.0 | Framework web principal. ORM, vistas, templates, autenticación y sesiones. |
+| mssql-django | ≥ 1.6 | Backend de Django para conectarse a SQL Server en producción. |
+| python-dotenv | ≥ 1.0 | Carga variables de entorno desde `.env` en desarrollo local. |
+| requests | — | Llamadas HTTP a las APIs externas (IOL, INDEC, ArgentinaDatos). |
 | pandas | — | Manipulación de series temporales de precios para cálculos de rendimiento. |
 | pandas-ta | — | Cálculo de indicadores técnicos (RSI, MACD, etc.) sobre series de precios. |
+| yfinance | ≥ 0.2 | Serie diaria del S&P 500 e históricos `.BA` para indicadores técnicos. |
 | pytest | — | Framework de tests. |
 | pytest-django | — | Plugin de pytest para proyectos Django (fixtures, settings de test). |
 

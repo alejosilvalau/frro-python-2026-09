@@ -50,3 +50,38 @@ funcionales ni casos de uso documentados pendientes de implementación: la Fase 
 | RF10 | Implementado (comando programable + historial) |
 | CU01–CU03 | Implementado |
 | CU04 venta | Implementado y documentado |
+
+## Operaciones históricas — IMPLEMENTADO
+
+- Las operaciones nuevas guardan un snapshot de precio, CCL, fecha, fuente, moneda de entrada y
+  unidad de cotización. El historial no se recalcula con una cotización actual.
+- IOL aporta último precio intradía para hoy y serie diaria sin ajustar para fechas pasadas;
+  ArgentinaDatos aporta el CCL de la fecha. Si el CCL falta, el usuario puede confirmarlo
+  manualmente.
+- Bonos y letras usan cantidad en VN y precio cada 100 VN. Queda fuera de alcance registrar
+  cupones y amortizaciones como movimientos de liquidez.
+- Cada instrumento guarda su moneda de negociación; las compras se restringen a esa moneda y el
+  formulario avisa cuando falta liquidez o broker.
+- Los formularios de compra y venta muestran el gráfico histórico del instrumento.
+
+## Catálogo y clasificación de instrumentos — IMPLEMENTADO
+
+- `seed_instruments_from_iol` importa acciones, CEDEARs, bonos y letras desde IOL junto con su
+  moneda de negociación, y siembra los brokers fijos.
+- `sync_instrument_classification` aplica una clasificación versionada (sector, tipo de CEDEAR,
+  emisor, tasa, estilo de pago) con fuente y fecha, respetando ediciones manuales.
+
+## Rendimiento y comparaciones — IMPLEMENTADO
+
+- Si el período de tenencia no alcanza la granularidad del benchmark (S&P 500 diario, inflación
+  INDEC mensual), se compara contra una ventana de 12 meses y la UI lo indica.
+- El % de ganancia/pérdida de la cartera se calcula sobre el capital total invertido (abierto y
+  cerrado), por lo que ya no queda vacío con carteras totalmente cerradas.
+- Las cotizaciones en USD se convierten antes de calcular el P&L en ARS.
+
+## Alertas desde el sitio — IMPLEMENTADO
+
+- Con sesión abierta, el navegador evalúa las alertas del usuario (máximo una vez cada 15
+  minutos por sesión) y avisa si hubo un disparo o faltan datos históricos.
+- Los indicadores de especies BYMA usan el símbolo de Yahoo con sufijo `.BA`; sin histórico
+  suficiente no se generan indicadores ficticios.
