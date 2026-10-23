@@ -41,28 +41,28 @@ División vertical por casos de uso:
 - RF03: El sistema calcula el rendimiento de cada posición: precio de compra vs. precio actual, ganancia/pérdida en % y en dólares y rendimiento anualizado (este último solo cuando la tenencia supera los 30 días).
 - RF04: El sistema compara el rendimiento de cada posición contra el S&P 500 (índice `^GSPC`) para el mismo período. Si el período es demasiado corto para la granularidad del índice, se usa una ventana de 12 meses y la pantalla lo indica.
 - RF05: El sistema compara el rendimiento del portfolio contra la inflación acumulada del INDEC para el período de inversión (con la misma ventana de 12 meses cuando el período no alcanza un mes completo).
-- RF07: El sistema calcula y muestra indicadores técnicos actuales por posición.
+- RF06: El sistema calcula y muestra indicadores técnicos actuales por posición.
 
 **Módulo 2 – Alertas**
 
-- RF10: El sistema evalúa periódicamente las condiciones de alerta y registra los disparos en el historial.
+- RF07: El sistema evalúa periódicamente las condiciones de alerta y registra los disparos en el historial.
 
 ### No Funcionales
 
-### Portability
+#### Portability
 
 **Obligatorios**
 
 - El sistema funciona correctamente en múltiples navegadores (Chrome, Firefox, Edge).
 
-### Security
+#### Security
 
 **Obligatorios**
 
 - Todas las contraseñas se almacenan mediante un hash criptográfico seguro. La implementación utiliza PBKDF2, provisto por el sistema de autenticación de Django.
 - Todas las API Keys y tokens (IOL) no se exponen de manera pública (uso de variables de entorno / `.env`).
 
-### Maintainability
+#### Maintainability
 
 **Obligatorios**
 
@@ -70,28 +70,28 @@ División vertical por casos de uso:
 - El utiliza utilizar control de versiones mediante GIT.
 - El sistema está programado en Python 3.10 o superior.
 
-### Reliability
+#### Reliability
 
 - Se maneja correctamente la ausencia de datos para períodos sin cotización (feriados, fines de semana): se usa el último valor disponible y, si el origen externo falla, se informa en pantalla en lugar de inventar datos.
 
-### Scalability
+#### Scalability
 
 **Obligatorios**
 
 - El sistema funciona desde una ventana normal y una de incógnito de manera independiente (multiusuario).
 - La sesión de usuario se gestiona mediante el sistema de sesiones de Django, sin variables locales.
 
-### Performance
+#### Performance
 
 **Obligatorios**
 
 - El sistema funciona en un equipo hogareño estándar.
 
-### Reusability
+#### Reusability
 
 - La capa de datos expone funciones reutilizables para consultar la APIs utilizadas (IOL, INDEC), independientemente del módulo que las consuma.
 
-### Flexibility
+#### Flexibility
 
 **Obligatorios**
 
@@ -125,10 +125,11 @@ División vertical por casos de uso:
 - **RN02 – Email único**: No pueden existir dos usuarios registrados con el mismo correo electrónico. El sistema rechaza el registro si el email ya está en uso.
 - **RN03 – Cantidad positiva**: La cantidad de títulos al registrar una posición o una orden debe ser mayor a cero.
 - **RN04 – Precio positivo**: El precio de compra o venta de una operación debe ser mayor a cero.
-- **RN07 – Moneda de compra**: La compra solo puede pagarse en la moneda en que cotiza el instrumento (`Stock.trading_currency`).
-- **RN08 – Liquidez suficiente**: Una compra requiere liquidez disponible, en la moneda de pago, mayor o igual al total de la operación; un retiro no puede superar el saldo disponible.
 - **RN05 – Operadores válidos**: Los operadores de condición de alerta deben ser uno de los siguientes: `>`, `<`, `>=`, `<=`, `==`, `!=`. Cualquier otro operador es rechazado.
 - **RN06 – Evaluación AND de alertas**: Una alerta se dispara únicamente si **todas** sus condiciones se cumplen de forma simultánea (lógica AND). Si alguna condición no se cumple, la alerta no se dispara aunque el resto sí lo hagan.
+- **RN07 – Moneda de compra**: La compra solo puede pagarse en la moneda en que cotiza el instrumento (`Stock.trading_currency`).
+- **RN08 – Liquidez suficiente**: Una compra requiere liquidez disponible, en la moneda de pago, mayor o igual al total de la operación; un retiro no puede superar el saldo disponible.
+
 
 ## Catálogo de instrumentos y brokers
 
